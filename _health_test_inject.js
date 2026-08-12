@@ -246,7 +246,21 @@
     ok("어제·오늘 두 날짜가 함께 보관됨",
       !!s2 && Object.keys(s2.accounts[0].db.days).length === 2);
 
-    // ---------- 10. 계정 분리 ----------
+    // ---------- 10. BGM ----------
+    // 실제 소리가 나는지는 오프라인 렌더링으로 재야 하는데, 헤드리스에서는
+    // startRendering() 프로미스가 완료되지 않는다. 파형 측정은 실제 브라우저에서 따로 한다.
+    ok("음악은 기본으로 꺼져 있음",
+      txt("#bgmBtn") === "🎵 음악" && el("bgmBtn").getAttribute("aria-pressed") === "false");
+    el("bgmBtn").click();
+    ok("켜면 라벨·상태가 바뀜",
+      txt("#bgmBtn") === "🔊 음악 끄기" && el("bgmBtn").getAttribute("aria-pressed") === "true");
+    ok("켠 설정이 저장됨", localStorage.getItem("health-dashboard-bgm") === "1");
+    el("bgmBtn").click();
+    ok("끄면 되돌아감",
+      txt("#bgmBtn") === "🎵 음악" && localStorage.getItem("health-dashboard-bgm") === "0");
+    ok("합성 함수가 노출됨", typeof window.__bgmPeak === "function");
+
+    // ---------- 11. 계정 분리 ----------
     el("signOutBtn").click();
     ok("바꾸기 누르면 로그인 화면", document.body.classList.contains("locked"));
     ok("만든 계정이 목록에 뜸", q("#whoList .whobtn").length === 1);

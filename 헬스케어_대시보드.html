@@ -804,6 +804,7 @@
       <span class="herotools">
         <span class="me"><span class="av" id="meAv">🐰</span><span id="meName">나</span>
           <button class="out" id="signOutBtn" type="button">바꾸기</button></span>
+        <button class="ghostbtn" id="bgmBtn" type="button" aria-pressed="false">🎵 음악</button>
         <button class="ghostbtn" id="exportBtn" type="button">백업 내보내기</button>
         <button class="ghostbtn" id="importBtn" type="button">불러오기</button>
         <button class="ghostbtn" id="themeBtn" type="button">다크 모드</button>
@@ -1390,6 +1391,205 @@
     return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 
+  /* ---------- BGM : 로파이 루프 ----------
+     오디오 파일을 넣으면 단일 파일이 수 MB로 불어난다. 그래서 Web Audio 로 직접 연주한다.
+     74BPM, 4마디 순환. 킥·스네어·하이햇 + 베이스 + 7th 코드 + 가끔 멜로디.
+     8분음표를 스윙시켜 딱딱하지 않게 만든다.
+     자동 재생하지 않는다 — 브라우저가 막기도 하고, 갑자기 소리가 나면 불쾌하다.
+     ------------------------------------------------------------------ */
+  var BGM_KEY = "health-dashboard-bgm";
+  var audio = null;
+  var bgmOn = false;
+
+  var BPM = 74;
+  var BEAT = 60 / BPM;
+  var EIGHTH = BEAT / 2;
+  var SWING = 0.34;                 // 뒤 8분음표를 뒤로 밀어 흔들리게
+
+  // Fmaj7 → Em7 → Dm7 → Cmaj7. 로파이에서 흔한 나른한 진행이다.
+  var BARS = [
+    { root: 87.31,  chord: [174.61, 220.00, 261.63, 329.63], scale: [349.23, 392.00, 440.00, 523.25, 587.33] },
+    { root: 82.41,  chord: [164.81, 196.00, 246.94, 293.66], scale: [329.63, 392.00, 440.00, 493.88, 587.33] },
+    { root: 73.42,  chord: [146.83, 174.61, 220.00, 261.63], scale: [293.66, 349.23, 392.00, 440.00, 523.25] },
+    { root: 65.41,  chord: [130.81, 164.81, 196.00, 246.94], scale: [261.63, 329.63, 392.00, 440.00, 493.88] }
+  ];
+
+  function audioReady() { return !!(window.AudioContext || window.webkitAudioContext); }
+
+  function noiseBuffer(ctx) {
+    var len = Math.floor(ctx.sampleRate * 0.4);
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    return buf;
+  }
+
+  /* --- 악기 --- */
+  function kick(ctx, dest, t) {
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(120, t);
+    o.frequency.exponentialRampToValueAtTime(42, t + 0.11);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.9, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+    o.connect(g); g.connect(dest);
+    o.start(t); o.stop(t + 0.36);
+  }
+  function snare(ctx, dest, t, nb) {
+    var s = ctx.createBufferSource(); s.buffer = nb;
+    var bp = ctx.createBiquadFilter();
+    bp.type = "bandpass"; bp.frequency.value = 1900; bp.Q.value = 0.8;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.32, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+    s.connect(bp); bp.connect(g); g.connect(dest);
+    s.start(t); s.stop(t + 0.2);
+  }
+  function hat(ctx, dest, t, nb, vel) {
+    var s = ctx.createBufferSource(); s.buffer = nb;
+    var hp = ctx.createBiquadFilter();
+    hp.type = "highpass"; hp.frequency.value = 7000;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.11 * vel, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
+    s.connect(hp); hp.connect(g); g.connect(dest);
+    s.start(t); s.stop(t + 0.08);
+  }
+  function bass(ctx, dest, t, f, dur) {
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "triangle";
+    o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.30, t + 0.03);
+    g.gain.setValueAtTime(0.30, t + dur * 0.6);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(dest);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  function chordStab(ctx, dest, t, freqs, dur, vol) {
+    freqs.forEach(function (f, i) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.value = f;
+      o.detune.value = (i % 2 ? 5 : -5);          // 살짝 어긋내 두툼하게
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(vol, t + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(dest);
+      o.start(t); o.stop(t + dur + 0.02);
+    });
+  }
+  function melody(ctx, dest, t, f) {
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "triangle";
+    o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.16, t + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+    o.connect(g); g.connect(dest);
+    o.start(t); o.stop(t + 0.95);
+  }
+
+  // 8분음표 한 칸. 실시간 재생과 오프라인 검증이 같은 코드를 쓴다.
+  function scheduleStep(ctx, dest, nb, step, t) {
+    var pos = step % 8;                       // 마디 안 8분음표 위치
+    var bar = BARS[Math.floor(step / 8) % 4];
+    if (pos % 2 === 1) t += EIGHTH * SWING;   // 스윙
+
+    hat(ctx, dest, t, nb, pos % 2 ? 0.6 : 1);
+    if (pos === 0 || pos === 6) kick(ctx, dest, t);
+    if (pos === 4) snare(ctx, dest, t);
+
+    if (pos === 0) {
+      bass(ctx, dest, t, bar.root, BEAT * 1.6);
+      chordStab(ctx, dest, t + EIGHTH * 0.5, bar.chord, BEAT * 1.8, 0.10);
+    }
+    if (pos === 3) chordStab(ctx, dest, t, bar.chord, BEAT * 1.2, 0.075);
+    if (pos === 6) bass(ctx, dest, t, bar.root * 1.5, BEAT * 0.7);
+
+    // 멜로디는 드문드문. 매번 나오면 금방 질린다.
+    if ((pos === 2 || pos === 5 || pos === 7) && Math.random() < 0.22) {
+      melody(ctx, dest, t, bar.scale[Math.floor(Math.random() * bar.scale.length)]);
+    }
+  }
+
+  function makeChain(ctx) {
+    var master = ctx.createGain();
+    var lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = 2600;   // 로파이 특유의 먹먹함
+    master.connect(lp); lp.connect(ctx.destination);
+    return master;
+  }
+
+  function startBgm() {
+    if (!audioReady() || audio) return false;
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      var ctx = new Ctx();
+      var master = makeChain(ctx);
+      master.gain.value = 0;
+      master.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 1.6);
+
+      audio = {
+        ctx: ctx, master: master, nb: noiseBuffer(ctx),
+        step: 0, next: ctx.currentTime + 0.12, timer: null
+      };
+      // 미리 조금씩 예약해 두는 방식. setInterval 만으로는 박자가 흔들린다.
+      audio.timer = setInterval(function () {
+        if (!audio) return;
+        while (audio.next < audio.ctx.currentTime + 0.25) {
+          scheduleStep(audio.ctx, audio.master, audio.nb, audio.step, audio.next);
+          audio.next += EIGHTH;
+          audio.step++;
+        }
+      }, 50);
+      return true;
+    } catch (e) { audio = null; return false; }
+  }
+
+  function stopBgm() {
+    if (!audio) return;
+    var a = audio; audio = null;
+    clearInterval(a.timer);
+    try {
+      a.master.gain.linearRampToValueAtTime(0.0001, a.ctx.currentTime + 0.5);
+      setTimeout(function () { try { a.ctx.close(); } catch (e) {} }, 900);
+    } catch (e) { try { a.ctx.close(); } catch (e2) {} }
+  }
+
+  // 검증용 : 실제로 소리가 나는지 오프라인으로 렌더링해 최대 진폭을 잰다
+  function renderBgmPeak() {
+    var OC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OC) return Promise.resolve(null);
+    var ctx = new OC(1, 44100 * 5, 44100);
+    var master = makeChain(ctx);
+    master.gain.value = 0.22;
+    var nb = noiseBuffer(ctx);
+    for (var s = 0; s < 16; s++) scheduleStep(ctx, master, nb, s, 0.05 + s * EIGHTH);
+    return ctx.startRendering().then(function (buf) {
+      var d = buf.getChannelData(0), peak = 0;
+      for (var i = 0; i < d.length; i++) { var v = Math.abs(d[i]); if (v > peak) peak = v; }
+      return peak;
+    });
+  }
+  window.__bgmPeak = renderBgmPeak;   // 검증 스크립트에서만 쓴다
+
+  function paintBgmBtn() {
+    var b = document.getElementById("bgmBtn");
+    if (!b) return;
+    b.textContent = bgmOn ? "🔊 음악 끄기" : "🎵 음악";
+    b.setAttribute("aria-pressed", bgmOn ? "true" : "false");
+  }
+
+  function toggleBgm() {
+    if (bgmOn) { stopBgm(); bgmOn = false; }
+    else { bgmOn = startBgm(); if (!bgmOn) alert("이 브라우저에서는 소리를 낼 수 없습니다."); }
+    try { localStorage.setItem(BGM_KEY, bgmOn ? "1" : "0"); } catch (e) {}
+    paintBgmBtn();
+  }
   var AVATARS = ["🐰", "🐻", "🐱", "🐨", "🦊", "🐣", "🐼", "🐯"];
   var SESSION_KEY = "health-dashboard-who";
 
@@ -1438,6 +1638,7 @@
     showApp();
   }
   function signOut() {
+    stopBgm(); bgmOn = false; paintBgmBtn();   // 로그인 화면에서 음악이 계속 나면 이상하다
     store.activeId = null;
     rememberSession(null);
     save();
@@ -2357,12 +2558,30 @@
   });
 
   document.getElementById("signOutBtn").addEventListener("click", function () { signOut(); });
+  document.getElementById("bgmBtn").addEventListener("click", toggleBgm);
+
+  // 브라우저는 사용자가 무언가 누르기 전에는 소리를 내지 못하게 막는다.
+  // 그래서 지난번에 켜 뒀더라도 첫 조작이 있을 때까지 기다렸다 시작한다.
+  function armBgm() {
+    var want = false;
+    try { want = localStorage.getItem(BGM_KEY) === "1"; } catch (e) {}
+    if (!want || !audioReady()) return;
+    function go() {
+      document.removeEventListener("pointerdown", go);
+      document.removeEventListener("keydown", go);
+      if (!bgmOn) { bgmOn = startBgm(); paintBgmBtn(); }
+    }
+    document.addEventListener("pointerdown", go);
+    document.addEventListener("keydown", go);
+  }
 
   function showApp() {
     document.body.classList.remove("locked");
     var a = activeAccount();
     document.getElementById("meAv").textContent = a ? (a.emoji || "🐰") : "🐰";
     document.getElementById("meName").textContent = a ? a.name : "";
+    paintBgmBtn();
+    armBgm();
     render();
     document.getElementById("mealText").focus();
     document.documentElement.classList.add("ready");
