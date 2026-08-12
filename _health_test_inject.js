@@ -49,8 +49,33 @@
     });
     ok("식단 4건 기록", q("#mealList .meal").length === 4);
     ok("끼니 구분 저장 (첫 행 아침)", txt("#mealList .meal .tag") === "아침");
+    // 섭취 칼로리 — 이름으로 어림
+    // 그릭요거트120+바나나90=210 / 닭가슴살165+샐러드150=315 / 현미밥320+된장국120=440 / 아몬드100
+    var mk = q("#mealList .meal .kc");
+    ok("식단별 칼로리 표시",
+      mk[0].textContent === "210kcal" && mk[1].textContent === "315kcal" &&
+      mk[2].textContent === "440kcal" && mk[3].textContent === "100kcal");
+    ok("섭취 칼로리 합계", txt("#mealKcal") === "약 1,065 kcal");
+
     q("#mealList .meal")[3].querySelector(".del").click();   // 간식 삭제
     ok("식단 삭제", q("#mealList .meal").length === 3);
+    ok("삭제 후 섭취 칼로리 갱신", txt("#mealKcal") === "약 965 kcal");
+
+    // 직접 적은 값이 어림값보다 우선한다
+    el("mealSeg").querySelector('.segbtn[data-slot="간식"]').click();
+    el("mealText").value = "단백질바 210kcal";
+    submit(el("mealForm"));
+    ok("직접 적은 kcal 우선",
+      q("#mealList .meal .kc")[3].textContent === "210kcal" &&
+      txt("#mealKcal") === "약 1,175 kcal");
+
+    // 모르는 음식은 끼니 기본값으로 (간식 200)
+    el("mealText").value = "정체불명음식";
+    submit(el("mealForm"));
+    ok("모르는 음식은 끼니 기본값", q("#mealList .meal .kc")[4].textContent === "200kcal");
+    q("#mealList .meal")[4].querySelector(".del").click();
+    q("#mealList .meal")[3].querySelector(".del").click();
+    ok("정리 후 원래 합계", txt("#mealKcal") === "약 965 kcal");
 
     // ---------- 2. 운동 (유산소 / 웨이트) ----------
     el("exSeg").querySelector('.segbtn[data-type="유산소"]').click();

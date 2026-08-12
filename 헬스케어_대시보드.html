@@ -387,6 +387,7 @@
     transition: color .15s ease, border-color .15s ease;
   }
   .wbtn:hover { color: var(--ink); border-color: var(--ink); }
+  .kcalnote { font-size: 11.5px; color: var(--muted-soft); line-height: 1.45; flex: 1 1 160px; }
   .row .kc {
     font-size: 12px; color: var(--rausch); font-weight: 600;
     font-variant-numeric: tabular-nums; white-space: nowrap;
@@ -876,6 +877,10 @@
           <button class="addbtn" type="submit">기록</button>
         </form>
         <ul id="mealList"></ul>
+        <div class="kcalrow">
+          <span class="kcal" id="mealKcal">약 0 kcal</span>
+          <span class="kcalnote">이름으로 어림한 값이에요 · 「샐러드 320kcal」처럼 적으면 그대로 씁니다</span>
+        </div>
       </div>
     </section>
 
@@ -1321,6 +1326,70 @@
     return ((rec || state).workouts).reduce(function (a, w) { return a + kcalOf(w); }, 0);
   }
 
+  /* ---------- 섭취 칼로리 (추정) ----------
+     음식 DB 없이 이름만 보고 어림한다. 양을 알 수 없으므로 운동보다 훨씬 거칠다.
+     정확히 알고 싶으면 "샐러드 320kcal" 처럼 직접 적으면 그 값을 그대로 쓴다.
+     ------------------------------------------------------------------ */
+  var FOOD_TABLE = [
+    // 밥·면 (1인분 기준)
+    ["비빔밥",600],["볶음밥",600],["덮밥",650],["김밥",480],["현미밥",320],["공기밥",300],["잡곡밥",310],["밥",300],
+    ["짜장면",700],["짬뽕",680],["칼국수",500],["잔치국수",450],["국수",450],["파스타",600],["스파게티",600],
+    ["냉면",550],["우동",480],["라멘",600],["라면",500],["쌀국수",450],
+    // 국·찌개
+    ["김치찌개",350],["된장찌개",250],["된장국",120],["미역국",120],["갈비탕",500],["설렁탕",450],["순대국",500],["삼계탕",800],["국",150],
+    // 고기·단백질
+    ["삼겹살",500],["닭가슴살",165],["치킨",800],["제육볶음",600],["불고기",400],["스테이크",500],
+    ["돈까스",700],["탕수육",600],["족발",600],["보쌈",550],["연어",210],["고등어",200],["생선",180],
+    ["달걀",80],["계란",80],["두부",150],["콩",120],
+    // 분식·간편식
+    ["떡볶이",500],["순대",400],["만두",350],["튀김",300],["피자",700],["햄버거",550],
+    ["샌드위치",400],["토스트",300],["핫도그",350],["시리얼",200],["죽",250],
+    // 채소·과일
+    ["샐러드",150],["나물",60],["김치",30],["브로콜리",40],["고구마",130],["감자",130],["옥수수",130],
+    ["바나나",90],["사과",95],["딸기",40],["오렌지",60],["포도",70],["수박",50],["블루베리",60],["토마토",25],
+    // 유제품·견과
+    ["그릭요거트",120],["요거트",110],["우유",130],["두유",120],["치즈",80],
+    ["아몬드",100],["견과",180],["땅콩",170],
+    // 빵·디저트
+    ["크로와상",300],["베이글",280],["케이크",400],["쿠키",150],["아이스크림",200],["초콜릿",250],["과자",300],["빵",300],
+    // 음료·주류
+    ["아메리카노",10],["라떼",180],["커피",50],["주스",120],["콜라",150],["맥주",200],["소주",400],["와인",150]
+  ];
+  // 이름으로 아무것도 못 찾았을 때 끼니별로 쓰는 값
+  var SLOT_FALLBACK = { "아침": 400, "점심": 600, "저녁": 600, "간식": 200 };
+  var UNIT_RE = /(\d+(?:\.\d+)?)\s*(개|인분|조각|잔|컵|장|공기|스푼|줄)/;
+
+  function foodKcal(frag) {
+    var s = frag.toLowerCase().replace(/\s+/g, "");
+    for (var i = 0; i < FOOD_TABLE.length; i++) {
+      if (s.indexOf(FOOD_TABLE[i][0]) >= 0) {
+        var base = FOOD_TABLE[i][1];
+        var m = frag.match(UNIT_RE);
+        if (m) return base * parseFloat(m[1]);
+        if (/반\s*(개|인분|조각|잔|공기)/.test(frag)) return base * 0.5;
+        return base;
+      }
+    }
+    return 0;
+  }
+
+  // 한 끼 기록의 추정 칼로리. 직접 적은 값이 있으면 그것이 우선이다.
+  function mealKcal(m) {
+    var direct = String(m.text).match(/(\d+(?:\.\d+)?)\s*(kcal|칼로리|킬로칼로리)/i);
+    if (direct) return parseFloat(direct[1]);
+    var total = 0;
+    String(m.text).split(/[,،+·/&]|\s+와\s+|\s+과\s+|\s+/).forEach(function (frag) {
+      if (frag.trim()) total += foodKcal(frag);
+    });
+    return total || (SLOT_FALLBACK[m.slot] || 400);
+  }
+  function mealKcalTotal(rec) {
+    return ((rec || state).meals).reduce(function (a, m) { return a + mealKcal(m); }, 0);
+  }
+  function comma(n) {
+    return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
   var AVATARS = ["🐰", "🐻", "🐱", "🐨", "🦊", "🐣", "🐼", "🐯"];
   var SESSION_KEY = "health-dashboard-who";
 
@@ -1605,6 +1674,8 @@
     document.getElementById("mealCount").textContent =
       state.meals.length ? state.meals.length + "건" : "";
 
+    document.getElementById("mealKcal").textContent = "약 " + comma(mealKcalTotal()) + " kcal";
+
     if (!sorted.length) {
       emptyRow(mealList, "아직 오늘 식단 기록이 없습니다.");
       return;
@@ -1623,6 +1694,12 @@
       txt.className = "txt";
       txt.textContent = m.text;
       li.appendChild(txt);
+
+      var kc = document.createElement("span");
+      kc.className = "kc";
+      kc.textContent = comma(mealKcal(m)) + "kcal";
+      kc.title = "이름으로 어림한 값입니다. 정확히 적으려면 「" + m.text + " 450kcal」처럼 쓰세요.";
+      li.appendChild(kc);
 
       li.appendChild(delButton(m.text + " 기록 삭제", function () {
         state.meals = state.meals.filter(function (x) { return x.id !== m.id; });
@@ -1725,7 +1802,7 @@
       .map(function (t) { return t + " " + exMinBy(t) + "분"; });
     document.getElementById("exBreak").textContent = parts.join(" · ");
 
-    document.getElementById("exKcal").textContent = "약 " + Math.round(kcalTotal()) + " kcal";
+    document.getElementById("exKcal").textContent = "약 " + comma(kcalTotal()) + " kcal";
     document.getElementById("weightBtn").textContent = "체중 " + myWeight() + "kg";
   }
 
