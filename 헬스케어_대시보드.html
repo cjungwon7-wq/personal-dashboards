@@ -146,6 +146,25 @@
   }
   h1 .emo { font-size: 34px; line-height: 1; margin-right: 8px; }
   .today { color: var(--on-band-dim); font-size: 16px; margin: 0 0 20px; }
+  .herotools { display: flex; gap: 7px; flex-wrap: wrap; }
+
+  /* 날짜 이동 */
+  .datenav { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; }
+  .navbtn {
+    font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+    min-width: 34px; height: 34px; padding: 0 10px; border-radius: var(--r-full);
+    background: var(--on-band-soft); color: var(--on-band);
+    border: 1px solid var(--on-band-line);
+    transition: background .15s ease, opacity .15s ease;
+  }
+  .navbtn:hover:not(:disabled) { background: var(--on-band-track); }
+  .navbtn:disabled { opacity: .38; cursor: default; }
+  .navbtn.wide { padding: 0 14px; }
+  .navdate {
+    font-size: 15px; font-weight: 600; color: var(--on-band);
+    min-width: 168px; text-align: center; font-variant-numeric: tabular-nums;
+  }
+
   .herostats { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
   .pill {
     font-size: 14px; font-weight: 500; color: var(--on-band);
@@ -275,6 +294,26 @@
   .cup:hover { border-color: var(--ink); transform: scale(1.06); }
   .cup.on { background: var(--ink); border-color: var(--ink); }
 
+  /* ---------- 누적 기록 : 최근 14일 막대 ---------- */
+  .trend { margin-top: 24px; }
+  .bars { display: flex; align-items: flex-end; gap: 6px; height: 132px; }
+  .bar {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+    gap: 6px; height: 100%; padding: 0; cursor: pointer;
+    background: none; border: none; font: inherit;
+  }
+  .bar .col {
+    width: 100%; min-height: 3px; border-radius: 6px 6px 0 0;
+    background: var(--hairline); transition: background .15s ease;
+  }
+  .bar .col.has { background: var(--ink); }
+  .bar.on .col { background: var(--rausch); }
+  .bar:hover .col { background: var(--rausch); }
+  .bar .d {
+    font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .bar.on .d { color: var(--ink); font-weight: 700; }
+
   /* ---------- 하단 중앙 : 메모 + 체크리스트 합본 ---------- */
   .combo { margin: 24px 0 48px; }
   .combobody { display: grid; grid-template-columns: 1fr 1fr; }
@@ -382,14 +421,25 @@
         오늘의 건강
       </span>
       <span class="herotools">
+        <button class="ghostbtn" id="exportBtn" type="button">백업 내보내기</button>
+        <button class="ghostbtn" id="importBtn" type="button">불러오기</button>
         <button class="ghostbtn" id="themeBtn" type="button">다크 모드</button>
-        </span>
+        <input type="file" id="importFile" accept="application/json" hidden>
+      </span>
     </div>
     <div class="herocopy">
       <h1><span class="emo" id="greetEmo">☀️</span><span id="greetText">오늘의 건강</span></h1>
       <p class="today" id="todayLine"></p>
+
+      <div class="datenav">
+        <button class="navbtn" id="prevDay" type="button" aria-label="하루 전">◀</button>
+        <span class="navdate" id="viewDate"></span>
+        <button class="navbtn" id="nextDay" type="button" aria-label="하루 뒤">▶</button>
+        <button class="navbtn wide" id="todayBtn" type="button">오늘로</button>
+      </div>
+
       <div class="herostats">
-        <span class="pill">식단 · 운동 · 수분 · 수면</span>
+        <span class="pill" id="pastFlag" hidden>지난 기록 보는 중</span>
         <span class="pill" id="heroScore">오늘 0.0점</span>
       </div>
     </div>
@@ -644,6 +694,22 @@
     </div>
   </section>
 
+  <!-- 누적 기록 : 최근 14일 추이 -->
+  <section class="card trend">
+    <div class="cardbody">
+      <div class="cardhead">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M3 20h18"/><path d="M6 20V12M11 20V6M16 20V15M21 20V9"/>
+        </svg>
+        <h2>최근 14일</h2>
+        <span class="count" id="trendAvg"></span>
+      </div>
+      <p class="hint">막대를 누르면 그날 기록을 볼 수 있습니다</p>
+      <div class="bars" id="trendBars"></div>
+    </div>
+  </section>
+
 </div>
 
 <!-- 4. 하단 점수 : 상단과 동일한 밴드 -->
@@ -680,8 +746,10 @@
   "use strict";
 
   // 기록은 이 브라우저에만 저장한다. 로그인도 서버도 없다.
-  var KEY = "health-dashboard-v2";
-  var OLD_KEY = "health-dashboard-v1";
+  // v3부터 날짜별로 쌓아 두므로 지난 기록이 사라지지 않는다.
+  var KEY = "health-dashboard-v3";
+  var OLD_KEYS = ["health-dashboard-v2", "health-dashboard-v1"];
+  var TREND_DAYS = 14;
 
   var SLOTS = ["아침", "점심", "저녁", "간식"];
   var EX_TYPES = ["유산소", "웨이트"];
@@ -712,55 +780,127 @@
     return "간식";
   }
 
-  var state = freshState();
   var slot = defaultSlot();
   var exType = EX_TYPES[0];
 
-  function freshState() {
+  // db  : 저장되는 전체 (날짜별 기록 + 체크 항목 템플릿 + 메모)
+  // view: 지금 화면에 보고 있는 날짜
+  // state: view 날짜의 기록. 각 핸들러는 예전처럼 state 만 만지면 된다.
+  var db = freshDb();
+  var view = todayKey(new Date());
+  var state = null;
+
+  function freshDay() {
+    return { meals: [], workouts: [], water: 0, sleep: { bed: "", wake: "" } };
+  }
+  function freshDb() {
     return {
-      date: todayKey(new Date()),
-      meals: [],
-      sleep: { bed: "", wake: "" },
-      workouts: [],
-      water: 0,
-      memos: [],
-      checks: []
+      version: 3,
+      days: {},
+      checkItems: DEFAULT_CHECKS.map(function (t) { return { id: uid(), text: t }; }),
+      checkMarks: {},          // 날짜별 완료한 체크 항목 id 목록
+      memos: []
     };
   }
 
+  function dayOf(d) {
+    if (!db.days[d]) db.days[d] = freshDay();
+    var r = db.days[d];
+    if (!Array.isArray(r.meals)) r.meals = [];
+    if (!Array.isArray(r.workouts)) r.workouts = [];
+    if (typeof r.water !== "number") r.water = 0;
+    if (!r.sleep) r.sleep = { bed: "", wake: "" };
+    return r;
+  }
+  function marksOf(d) {
+    if (!Array.isArray(db.checkMarks[d])) db.checkMarks[d] = [];
+    return db.checkMarks[d];
+  }
+  function isToday(d) { return d === todayKey(new Date()); }
+
   /* ---------- 저장 : localStorage ---------- */
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    pruneEmptyDays();
+    try { localStorage.setItem(KEY, JSON.stringify(db)); }
     catch (e) { setStatus("이 브라우저에 저장하지 못했습니다.", true); }
   }
 
-  function load() {
-    var p = null;
-    try { p = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY)); } catch (e) {}
-    if (!p || !Array.isArray(p.meals) || !Array.isArray(p.workouts) || !Array.isArray(p.checks)) {
-      state = freshState();
-      state.checks = DEFAULT_CHECKS.map(function (t) {
-        return { id: uid(), text: t, done: false };
-      });
-      save();
-      return;
-    }
-    // v1에는 운동 종류가 없었다. 없거나 모르는 값이면 유산소로 채운다.
-    p.workouts.forEach(function (w) {
-      if (EX_TYPES.indexOf(w.type) < 0) w.type = EX_TYPES[0];
+  // 열어만 보고 아무것도 안 적은 날짜가 쌓이지 않게 한다 (오늘은 남긴다)
+  function pruneEmptyDays() {
+    Object.keys(db.days).forEach(function (d) {
+      if (d === view || isToday(d)) return;
+      var r = db.days[d];
+      var empty = !r.meals.length && !r.workouts.length && !r.water &&
+                  !r.sleep.bed && !r.sleep.wake && !marksOf(d).length;
+      if (empty) { delete db.days[d]; delete db.checkMarks[d]; }
     });
-    state = p;
-    // 날짜가 바뀌면 오늘 기록은 비우고 체크는 해제한다 (메모는 남긴다)
-    var t = todayKey(new Date());
-    if (state.date !== t) {
-      state.date = t;
-      state.meals = [];
-      state.workouts = [];
-      state.sleep = { bed: "", wake: "" };
-      state.water = 0;
-      state.checks.forEach(function (c) { c.done = false; });
+  }
+
+  function load() {
+    var raw = null;
+    try { raw = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+    if (raw && raw.version === 3 && raw.days && raw.checkItems) {
+      db = raw;
+      if (!db.checkMarks) db.checkMarks = {};
+      if (!Array.isArray(db.memos)) db.memos = [];
+    } else {
+      db = migrate();
     }
+    Object.keys(db.days).forEach(function (d) {
+      dayOf(d).workouts.forEach(function (w) {
+        if (EX_TYPES.indexOf(w.type) < 0) w.type = EX_TYPES[0];
+      });
+    });
+    view = todayKey(new Date());
+    state = dayOf(view);
     save();
+  }
+
+  // v1 / v2 는 하루치만 들고 있었다. 그 하루를 자기 날짜 칸에 넣어 옮긴다.
+  function migrate() {
+    var fresh = freshDb();
+    var old = null;
+    for (var i = 0; i < OLD_KEYS.length && !old; i++) {
+      try {
+        var p = JSON.parse(localStorage.getItem(OLD_KEYS[i]));
+        if (p && Array.isArray(p.meals) && Array.isArray(p.workouts)) old = p;
+      } catch (e) { /* 깨진 값은 무시하고 새로 시작 */ }
+    }
+    if (!old) return fresh;
+
+    var d = old.date || todayKey(new Date());
+    fresh.days[d] = {
+      meals: old.meals || [],
+      workouts: (old.workouts || []).map(function (w) {
+        if (EX_TYPES.indexOf(w.type) < 0) w.type = EX_TYPES[0];
+        return w;
+      }),
+      water: typeof old.water === "number" ? old.water : 0,
+      sleep: old.sleep || { bed: "", wake: "" }
+    };
+    if (Array.isArray(old.memos)) fresh.memos = old.memos;
+    if (Array.isArray(old.checks) && old.checks.length) {
+      fresh.checkItems = old.checks.map(function (c) {
+        return { id: c.id || uid(), text: c.text };
+      });
+      fresh.checkMarks[d] = old.checks.filter(function (c) { return c.done; })
+                                      .map(function (c) { return c.id; });
+    }
+    return fresh;
+  }
+
+  function setView(d) {
+    view = d;
+    state = dayOf(d);
+    save();
+    render();
+  }
+  function shiftView(days) {
+    var t = new Date(view + "T00:00:00");
+    t.setDate(t.getDate() + days);
+    var next = todayKey(t);
+    if (next > todayKey(new Date())) return;   // 미래는 보지 않는다
+    setView(next);
   }
 
   /* ---------- 상단 인사 ---------- */
@@ -779,6 +919,23 @@
     document.getElementById("todayLine").textContent =
       now.getFullYear() + "년 " + (now.getMonth() + 1) + "월 " + now.getDate() + "일 " +
       days[now.getDay()] + "요일";
+  }
+
+  // "8월 11일 (화)" — 보고 있는 날짜
+  function labelOf(d, withYear) {
+    var days = ["일", "월", "화", "수", "목", "금", "토"];
+    var t = new Date(d + "T00:00:00");
+    return (withYear ? t.getFullYear() + "년 " : "") +
+      (t.getMonth() + 1) + "월 " + t.getDate() + "일 (" + days[t.getDay()] + ")";
+  }
+
+  function paintDateNav() {
+    var today = todayKey(new Date());
+    var past = view !== today;
+    document.getElementById("viewDate").textContent = past ? labelOf(view) : "오늘 · " + labelOf(view);
+    document.getElementById("nextDay").disabled = !past;
+    document.getElementById("todayBtn").disabled = !past;
+    document.getElementById("pastFlag").hidden = !past;
   }
 
   /* ---------- 공통 ---------- */
@@ -906,8 +1063,8 @@
     save();
   });
 
-  function exTotalMin() {
-    return state.workouts.reduce(function (a, w) { return a + w.min; }, 0);
+  function exTotalMin(rec) {
+    return (rec || state).workouts.reduce(function (a, w) { return a + w.min; }, 0);
   }
   function exMinBy(type) {
     return state.workouts.reduce(function (a, w) { return a + (w.type === type ? w.min : 0); }, 0);
@@ -1022,8 +1179,9 @@
     return h * 60 + m;
   }
   // 취침 → 기상 사이의 분. 자정을 넘기면 24시간을 더해 계산한다.
-  function sleepMinutes() {
-    var b = toMin(state.sleep.bed), w = toMin(state.sleep.wake);
+  function sleepMinutes(rec) {
+    var r = rec || state;
+    var b = toMin(r.sleep.bed), w = toMin(r.sleep.wake);
     if (b === null || w === null) return 0;
     var d = w - b;
     if (d <= 0) d += 1440;
@@ -1061,7 +1219,7 @@
     var text = memoText.value.trim();
     if (!text) return;
     var m = { id: uid(), text: text, at: new Date().toISOString() };
-    state.memos.unshift(m);
+    db.memos.unshift(m);
     memoText.value = "";
     render();
     save();
@@ -1075,9 +1233,9 @@
   function renderMemos() {
     memoList.textContent = "";
     document.getElementById("memoCount").textContent =
-      state.memos.length ? state.memos.length + "건" : "";
+      db.memos.length ? db.memos.length + "건" : "";
 
-    if (!state.memos.length) {
+    if (!db.memos.length) {
       var em = document.createElement("div");
       em.className = "empty";
       em.textContent = "아직 메모가 없습니다.";
@@ -1085,7 +1243,7 @@
       return;
     }
 
-    state.memos.forEach(function (m) {
+    db.memos.forEach(function (m) {
       var box = document.createElement("div");
       box.className = "memo";
 
@@ -1099,7 +1257,7 @@
         String(when.getMinutes()).padStart(2, "0");
       mt.appendChild(stamp);
       mt.appendChild(delButton("메모 삭제", function () {
-        state.memos = state.memos.filter(function (x) { return x.id !== m.id; });
+        db.memos = db.memos.filter(function (x) { return x.id !== m.id; });
         render();
         save();
       }));
@@ -1122,9 +1280,7 @@
     var el = document.getElementById("chkText");
     var text = el.value.trim();
     if (!text) return;
-    var order = state.checks.reduce(function (m, c) { return Math.max(m, c.order || 0); }, 0) + 1;
-    var c = { id: uid(), text: text, done: false, order: order };
-    state.checks.push(c);
+    db.checkItems.push({ id: uid(), text: text });
     el.value = ""; el.focus();
     render();
     save();
@@ -1132,8 +1288,10 @@
 
   function renderChecks() {
     chkList.textContent = "";
-    var total = state.checks.length;
-    var done = state.checks.filter(function (c) { return c.done; }).length;
+    var items = db.checkItems;
+    var marks = marksOf(view);
+    var total = items.length;
+    var done = items.filter(function (c) { return marks.indexOf(c.id) >= 0; }).length;
     var pct = total ? Math.round(done / total * 100) : 0;
 
     var fill = document.getElementById("fill");
@@ -1147,18 +1305,22 @@
       return;
     }
 
-    state.checks.forEach(function (c) {
+    items.forEach(function (c) {
+      var on = marks.indexOf(c.id) >= 0;
       var li = document.createElement("li");
-      li.className = "chk" + (c.done ? " done" : "");
+      li.className = "chk" + (on ? " done" : "");
 
       var box = document.createElement("input");
       box.type = "checkbox";
-      box.checked = c.done;
+      box.checked = on;
       box.id = "chk-" + c.id;
       box.addEventListener("change", function () {
-        c.done = box.checked;
+        // 완료 표시는 날짜별로 따로 쌓인다 — 새 날짜에는 표시가 없어 저절로 풀린다
+        var m = marksOf(view);
+        var i = m.indexOf(c.id);
+        if (box.checked && i < 0) m.push(c.id);
+        if (!box.checked && i >= 0) m.splice(i, 1);
         render();
-        // 완료 표시는 날짜별로 따로 쌓인다 — 자정이 지나면 그 날짜 행이 없어 저절로 풀린다
         save();
       });
 
@@ -1169,9 +1331,12 @@
       li.appendChild(box);
       li.appendChild(lb);
       li.appendChild(delButton(c.text + " 삭제", function () {
-        state.checks = state.checks.filter(function (x) { return x.id !== c.id; });
+        db.checkItems = db.checkItems.filter(function (x) { return x.id !== c.id; });
+        // 지난 날짜에 남은 완료 표시도 함께 지운다
+        Object.keys(db.checkMarks).forEach(function (d) {
+          db.checkMarks[d] = db.checkMarks[d].filter(function (id) { return id !== c.id; });
+        });
         render();
-        // 완료 표시(checklist_marks)는 cascade로 함께 지워진다
         save();
       }));
       chkList.appendChild(li);
@@ -1180,12 +1345,14 @@
 
   /* ---------- 하단 : 오늘의 점수 ---------- */
   // 각 항목을 목표 대비 비율(최대 1)로 환산해 2.5점씩 배분한다.
-  function scoreParts() {
+  // 인자를 주면 그 날짜 기록으로 계산한다 (추이 막대에서 지난 날 점수를 낼 때 쓴다)
+  function scoreParts(rec) {
+    var r = rec || state;
     var slotsDone = {};
-    state.meals.forEach(function (m) { if (m.slot !== "간식") slotsDone[m.slot] = true; });
+    r.meals.forEach(function (m) { if (m.slot !== "간식") slotsDone[m.slot] = true; });
     var mealDone = Object.keys(slotsDone).length;
-    var sleepH = sleepMinutes() / 60;
-    var exMin = exTotalMin();
+    var sleepH = sleepMinutes(r) / 60;
+    var exMin = exTotalMin(r);
 
     return [
       { cls: "s-sleep", label: "수면", got: sleepH, goal: GOAL.sleep,
@@ -1194,13 +1361,20 @@
         text: exMin + " / " + GOAL.ex + "분" },
       { cls: "s-meal", label: "식단", got: mealDone, goal: GOAL.meal,
         text: mealDone + " / " + GOAL.meal + "끼" },
-      { cls: "s-water", label: "수분", got: state.water, goal: GOAL.water,
-        text: state.water + " / " + GOAL.water + "잔" }
+      { cls: "s-water", label: "수분", got: r.water, goal: GOAL.water,
+        text: r.water + " / " + GOAL.water + "잔" }
     ].map(function (p) {
       p.ratio = p.goal ? Math.min(1, p.got / p.goal) : 0;
       p.pt = p.ratio * 2.5;
       return p;
     });
+  }
+  function scoreOf(rec) {
+    return scoreParts(rec).reduce(function (a, p) { return a + p.pt; }, 0);
+  }
+  function hasRecord(rec) {
+    return !!(rec.meals.length || rec.workouts.length || rec.water ||
+              rec.sleep.bed || rec.sleep.wake);
   }
 
   function renderScore() {
@@ -1274,12 +1448,105 @@
   }
   function paintFooter() {
     var f = document.getElementById("footer");
+    var n = Object.keys(db.days).filter(function (d) { return hasRecord(dayOf(d)); }).length;
     f.textContent = status ||
-      "기록은 이 브라우저에만 저장됩니다. 자정이 지나면 오늘 기록은 초기화되고 체크 항목은 그대로 남습니다.";
+      ("기록은 이 브라우저에만 저장됩니다 · 기록한 날 " + n + "일" +
+       " · 가끔 백업을 내보내 두세요.");
     f.classList.toggle("bad", statusBad && !!status);
   }
 
+  /* ---------- 누적 기록 : 최근 14일 추이 ---------- */
+  var trendBars = document.getElementById("trendBars");
+
+  function recentDays(n) {
+    var out = [], t = new Date(todayKey(new Date()) + "T00:00:00");
+    t.setDate(t.getDate() - (n - 1));
+    for (var i = 0; i < n; i++) {
+      out.push(todayKey(t));
+      t.setDate(t.getDate() + 1);
+    }
+    return out;
+  }
+
+  function renderTrend() {
+    trendBars.textContent = "";
+    var list = recentDays(TREND_DAYS);
+    var scored = [];
+
+    list.forEach(function (d) {
+      var rec = db.days[d];
+      var has = !!rec && hasRecord(dayOf(d));
+      var sc = has ? scoreOf(dayOf(d)) : 0;
+      if (has) scored.push(sc);
+
+      var b = document.createElement("button");
+      b.className = "bar" + (d === view ? " on" : "");
+      b.type = "button";
+      b.title = labelOf(d) + (has ? " · " + (Math.round(sc * 10) / 10).toFixed(1) + "점" : " · 기록 없음");
+      b.setAttribute("aria-label", b.title);
+
+      var col = document.createElement("div");
+      col.className = "col" + (has ? " has" : "");
+      col.style.height = Math.max(3, Math.round(sc / 10 * 100)) + "%";
+      b.appendChild(col);
+
+      var lab = document.createElement("span");
+      lab.className = "d";
+      lab.textContent = String(new Date(d + "T00:00:00").getDate());
+      b.appendChild(lab);
+
+      b.addEventListener("click", function () { setView(d); });
+      trendBars.appendChild(b);
+    });
+
+    var avg = scored.length
+      ? scored.reduce(function (a, x) { return a + x; }, 0) / scored.length : 0;
+    document.getElementById("trendAvg").textContent =
+      scored.length ? "평균 " + (Math.round(avg * 10) / 10).toFixed(1) + "점" : "";
+  }
+
+  /* ---------- 날짜 이동 ---------- */
+  document.getElementById("prevDay").addEventListener("click", function () { shiftView(-1); });
+  document.getElementById("nextDay").addEventListener("click", function () { shiftView(1); });
+  document.getElementById("todayBtn").addEventListener("click", function () {
+    setView(todayKey(new Date()));
+  });
+
+  /* ---------- 백업 ---------- */
+  document.getElementById("exportBtn").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "오늘의건강_" + todayKey(new Date()) + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  document.getElementById("importBtn").addEventListener("click", function () {
+    document.getElementById("importFile").click();
+  });
+  document.getElementById("importFile").addEventListener("change", function (e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var p = JSON.parse(r.result);
+        if (!p || !p.days || !Array.isArray(p.checkItems)) throw new Error("형식 오류");
+        if (!confirm("지금 기록을 불러온 파일로 덮어씁니다. 계속할까요?")) return;
+        localStorage.setItem(KEY, JSON.stringify(p));
+        load();
+        render();
+        setStatus("백업을 불러왔습니다.", false);
+      } catch (err) {
+        alert("불러오지 못했습니다. 이 대시보드에서 내보낸 JSON 파일인지 확인해 주세요.");
+      }
+    };
+    r.readAsText(f);
+    e.target.value = "";
+  });
+
   function render() {
+    paintDateNav();
     paintSeg();
     renderMeals();
     renderWorkouts();
@@ -1288,11 +1555,11 @@
     renderMemos();
     renderChecks();
     renderScore();
+    renderTrend();
     paintFooter();
   }
 
   /* ---------- 시작 ---------- */
-  // 세션이 있으면 계정에서, 로컬 모드면 이 브라우저에서 읽는다. 둘 다 아니면 로그인 화면.
   function start() {
     load();
     render();

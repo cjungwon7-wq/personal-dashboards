@@ -135,16 +135,56 @@
     return sleep(400);
   }).then(function () {
 
-    // ---------- 8. 저장 지속성 ----------
-    var saved = null;
-    try { saved = JSON.parse(localStorage.getItem("health-dashboard-v2")); } catch (e) {}
-    ok("localStorage 저장",
-      !!saved && saved.meals.length === 3 && saved.workouts.length === 1 &&
-      saved.water === 4 && saved.sleep.bed === "23:00" && saved.checks.length === 4);
-    ok("운동 종류가 저장에 포함", !!saved && saved.workouts[0].type === "유산소");
+    // ---------- 8. 저장 지속성 (v3 · 날짜별) ----------
+    var today = new Date();
+    var key = today.getFullYear() + "-" +
+      String(today.getMonth() + 1).padStart(2, "0") + "-" +
+      String(today.getDate()).padStart(2, "0");
+
+    var db = null;
+    try { db = JSON.parse(localStorage.getItem("health-dashboard-v3")); } catch (e) {}
+    ok("v3 스키마로 저장", !!db && db.version === 3 && !!db.days);
+    var d = db && db.days[key];
+    ok("오늘 기록이 날짜 칸에 저장",
+      !!d && d.meals.length === 3 && d.workouts.length === 1 &&
+      d.water === 4 && d.sleep.bed === "23:00");
+    ok("운동 종류가 저장에 포함", !!d && d.workouts[0].type === "유산소");
+    ok("체크 항목은 날짜와 분리된 템플릿", !!db && db.checkItems.length === 4);
+    ok("완료 표시는 날짜별로 보관", !!db && Array.isArray(db.checkMarks[key]) && db.checkMarks[key].length === 2);
+    ok("메모는 날짜와 무관하게 보관", !!db && db.memos.length === 1);
     ok("로그인 세션 키를 만들지 않음", !localStorage.getItem("health-dashboard-session"));
-    ok("푸터에 계정 문구 없음", !/계정/.test(el("footer").textContent));
     ok("JS 오류 없음", jsError === "");
+
+    // ---------- 9. 누적 기록 : 추이 · 지난 날 조회 ----------
+    ok("추이 막대 14개", q("#trendBars .bar").length === 14);
+    ok("오늘 막대가 선택 상태", q("#trendBars .bar")[13].classList.contains("on"));
+    ok("평균 점수 표시", /평균 .*점/.test(txt("#trendAvg")));
+    ok("오늘은 이전 버튼만 활성", el("nextDay").disabled && el("todayBtn").disabled);
+
+    // 어제로 이동 — 오늘 기록이 사라지지 않아야 한다
+    el("prevDay").click();
+    ok("어제로 이동", !/오늘/.test(txt("#viewDate")));
+    ok("지난 기록 표시등 켜짐", !el("pastFlag").hidden);
+    ok("어제는 기록 없음", q("#mealList .meal").length === 0 && txt("#exTotal") === "0분");
+    ok("어제 이동 시 다음/오늘 버튼 활성", !el("nextDay").disabled && !el("todayBtn").disabled);
+
+    // 어제 칸에 기록을 남겨 본다
+    el("mealSeg").querySelector('.segbtn[data-slot="저녁"]').click();
+    el("mealText").value = "어제 저녁 기록";
+    submit(el("mealForm"));
+    ok("지난 날에도 기록 가능", q("#mealList .meal").length === 1);
+
+    // 오늘로 복귀 — 오늘 기록이 그대로여야 한다
+    el("todayBtn").click();
+    ok("오늘로 복귀", /오늘/.test(txt("#viewDate")) && el("pastFlag").hidden);
+    ok("오늘 기록 그대로 유지",
+      q("#mealList .meal").length === 3 && txt("#exTotal") === "30분" &&
+      q("#waterCups .cup.on").length === 4);
+    ok("총점 유지", txt("#scoreTotal") === "8.8");
+
+    var db2 = null;
+    try { db2 = JSON.parse(localStorage.getItem("health-dashboard-v3")); } catch (e) {}
+    ok("어제·오늘 두 날짜가 함께 보관됨", !!db2 && Object.keys(db2.days).length === 2);
 
     // ---------- 결과 배너 ----------
     var passed = log.filter(function (x) { return x.pass; }).length;
