@@ -98,10 +98,23 @@
   body {
     margin: 0; padding: 0;
     background: var(--canvas); color: var(--ink);
-    font-family: Inter, "Airbnb Cereal VF", Circular, -apple-system, BlinkMacSystemFont,
-                 "Segoe UI", Roboto, "Apple SD Gothic Neo", "맑은 고딕", Malgun Gothic, sans-serif;
-    font-size: 16px; line-height: 1.5;
+    /* 라틴과 한글을 각각 다른 폰트가 맡는다. 브라우저는 글자마다 앞에서부터
+       그 글자를 가진 첫 폰트를 쓰므로, 라틴용을 앞에 두고 한글용을 뒤에 둔다.
+       Pretendard가 깔려 있으면 둘 다 그걸로 통일된다. */
+    font-family:
+      "Pretendard Variable", Pretendard,
+      -apple-system, BlinkMacSystemFont,
+      "Segoe UI Variable Text", "Segoe UI", Inter, Roboto,
+      "Apple SD Gothic Neo", "Noto Sans KR", "맑은 고딕", "Malgun Gothic",
+      sans-serif;
+    font-size: 16px; line-height: 1.6;
+    letter-spacing: -0.01em;
+    /* 한글은 단어 중간에서 끊지 않는다 */
+    word-break: keep-all;
+    overflow-wrap: anywhere;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   .inner { max-width: 1160px; margin: 0 auto; padding: 0 32px; }
   @media (max-width: 640px) { .inner { padding: 0 20px; } }
@@ -128,7 +141,7 @@
 
   .herocopy { text-align: center; padding: 30px 0 54px; }
   h1 {
-    font-size: 32px; font-weight: 700; line-height: 1.25; letter-spacing: -0.5px;
+    font-size: 32px; font-weight: 700; line-height: 1.3; letter-spacing: -0.035em;
     margin: 0 0 10px; color: var(--on-band);
   }
   h1 .emo { font-size: 34px; line-height: 1; margin-right: 8px; }
@@ -159,14 +172,14 @@
 
   .cardhead { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
   .cardhead .glyph { width: 22px; height: 22px; flex: none; color: var(--ink); }
-  h2 { font-size: 20px; font-weight: 600; line-height: 1.2; letter-spacing: -0.18px; margin: 0; }
+  h2 { font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: -0.025em; margin: 0; }
   .count {
     margin-left: auto; font-size: 11px; font-weight: 600;
     color: var(--ink); background: var(--surface-strong);
     border-radius: var(--r-full); padding: 4px 10px; font-variant-numeric: tabular-nums;
   }
   .count:empty { display: none; }
-  .hint { font-size: 14px; color: var(--muted); margin: 0 0 18px; }
+  .hint { font-size: 14px; color: var(--muted); margin: 0 0 18px; line-height: 1.5; }
 
   /* ---------- 폼 ---------- */
   form.addrow { display: flex; gap: 8px; margin-bottom: 16px; }
