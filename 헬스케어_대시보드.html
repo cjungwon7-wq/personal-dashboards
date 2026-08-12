@@ -373,6 +373,25 @@
   .total .split { font-size: 14px; color: var(--body); margin-left: auto; font-variant-numeric: tabular-nums; }
   .total .split:empty { display: none; }
 
+  /* 소비 칼로리 */
+  .kcalrow { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .kcal {
+    font-size: 14px; font-weight: 600; color: var(--rausch);
+    background: rgba(var(--rausch-rgb), .10); border-radius: var(--r-full);
+    padding: 6px 14px; font-variant-numeric: tabular-nums;
+  }
+  .wbtn {
+    font: inherit; font-size: 12.5px; cursor: pointer; margin-left: auto;
+    color: var(--muted); background: none; border: 1px dashed var(--hairline);
+    border-radius: var(--r-full); padding: 5px 12px;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .wbtn:hover { color: var(--ink); border-color: var(--ink); }
+  .row .kc {
+    font-size: 12px; color: var(--rausch); font-weight: 600;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+
   /* ---------- 수면 ---------- */
   .timerow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .timerow label { font-size: 14px; font-weight: 500; color: var(--muted); flex: none; }
@@ -913,6 +932,10 @@
           <span class="sub">목표 30분</span>
           <span class="split" id="exBreak"></span>
         </div>
+        <div class="kcalrow">
+          <span class="kcal" id="exKcal">약 0 kcal</span>
+          <button class="wbtn" type="button" id="weightBtn">체중 60kg</button>
+        </div>
       </div>
     </section>
 
@@ -1176,6 +1199,7 @@
   }
   function freshDb() {
     return {
+      weight: DEFAULT_WEIGHT,
       days: {},
       checkItems: DEFAULT_CHECKS.map(function (t) { return { id: uid(), text: t }; }),
       checkMarks: {},          // 날짜별 완료한 체크 항목 id 목록
@@ -1259,6 +1283,42 @@
       ? crypto.getRandomValues(b)
       : b.forEach(function (_, i) { b[i] = Math.floor(Math.random() * 256); });
     return [].map.call(b, function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+  }
+
+  /* ---------- 소비 칼로리 (추정) ----------
+     kcal = MET × 체중(kg) × 시간(h)  — 운동생리학에서 쓰는 표준 근사식이다.
+     개인차(체지방률·심폐능력·강도)가 커서 어디까지나 어림값이다.
+     ------------------------------------------------------------------ */
+  var DEFAULT_WEIGHT = 60;
+  var MET_TABLE = [
+    ["줄넘기", 11.0], ["복싱", 7.8], ["수영", 7.0], ["등산", 6.5],
+    ["달리기", 8.0], ["러닝", 8.0], ["조깅", 7.0], ["트레드밀", 8.0],
+    ["자전거", 7.0], ["사이클", 7.0], ["스피닝", 8.5], ["로잉", 7.0],
+    ["축구", 7.5], ["농구", 7.5], ["테니스", 7.3], ["배드민턴", 5.5],
+    ["골프", 4.8], ["빠르게걷기", 4.3], ["파워워킹", 4.3], ["걷기", 3.5], ["산책", 3.5],
+    ["계단", 8.0], ["에어로빅", 6.5], ["댄스", 5.0], ["홈트", 5.0],
+    ["필라테스", 3.0], ["스트레칭", 2.5], ["요가", 3.0],
+    ["스쿼트", 5.0], ["데드리프트", 6.0], ["벤치프레스", 5.0], ["턱걸이", 6.0],
+    ["플랭크", 3.5], ["웨이트", 5.0], ["헬스", 5.0], ["근력", 5.0]
+  ];
+  var MET_FALLBACK = { "유산소": 7.0, "웨이트": 5.0 };
+
+  function metOf(w) {
+    var n = String(w.name || "").toLowerCase().replace(/\s+/g, "");
+    for (var i = 0; i < MET_TABLE.length; i++) {
+      if (n.indexOf(MET_TABLE[i][0]) >= 0) return MET_TABLE[i][1];
+    }
+    return MET_FALLBACK[w.type] || 6.0;
+  }
+  function myWeight() {
+    var w = db && db.weight;
+    return (typeof w === "number" && w > 0) ? w : DEFAULT_WEIGHT;
+  }
+  function kcalOf(w) {
+    return metOf(w) * myWeight() * (w.min / 60);
+  }
+  function kcalTotal(rec) {
+    return ((rec || state).workouts).reduce(function (a, w) { return a + kcalOf(w); }, 0);
   }
 
   var AVATARS = ["🐰", "🐻", "🐱", "🐨", "🦊", "🐣", "🐼", "🐯"];
@@ -1379,6 +1439,7 @@
 
   function normalizeDb(x) {
     if (!x) return;
+    if (typeof x.weight !== "number" || x.weight <= 0) x.weight = DEFAULT_WEIGHT;
     if (!x.days) x.days = {};
     if (!x.checkMarks) x.checkMarks = {};
     if (!Array.isArray(x.memos)) x.memos = [];
@@ -1636,6 +1697,12 @@
         txt.textContent = w.name;
         li.appendChild(txt);
 
+        var kc = document.createElement("span");
+        kc.className = "kc";
+        kc.textContent = Math.round(kcalOf(w)) + "kcal";
+        kc.title = "MET " + metOf(w) + " · 체중 " + myWeight() + "kg 기준 추정";
+        li.appendChild(kc);
+
         var num = document.createElement("span");
         num.className = "num";
         num.textContent = w.min + "분";
@@ -1657,7 +1724,21 @@
       .filter(function (t) { return exMinBy(t) > 0; })
       .map(function (t) { return t + " " + exMinBy(t) + "분"; });
     document.getElementById("exBreak").textContent = parts.join(" · ");
+
+    document.getElementById("exKcal").textContent = "약 " + Math.round(kcalTotal()) + " kcal";
+    document.getElementById("weightBtn").textContent = "체중 " + myWeight() + "kg";
   }
+
+  document.getElementById("weightBtn").addEventListener("click", function () {
+    var cur = myWeight();
+    var v = window.prompt("칼로리 계산에 쓸 체중(kg)을 적어 주세요.\n운동 종류와 시간으로 소비량을 어림합니다.", String(cur));
+    if (v === null) return;
+    var n = parseFloat(String(v).replace(/[^0-9.]/g, ""));
+    if (!n || n < 20 || n > 250) { alert("20~250 사이로 적어 주세요."); return; }
+    db.weight = Math.round(n * 10) / 10;
+    save();
+    render();
+  });
 
   /* ---------- 핵심기능 3 : 수분 ---------- */
   var cupsEl = document.getElementById("waterCups");

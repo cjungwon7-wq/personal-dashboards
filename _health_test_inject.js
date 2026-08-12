@@ -68,12 +68,32 @@
     ok("종류 아이콘 표시", q("#exList .ex .tag .tico").length === 2);
     ok("종류별 합계", txt("#exBreak") === "유산소 30분 · 웨이트 15분");
 
+    // 소비 칼로리 — kcal = MET × 체중 × 시간
+    // 러닝 MET 8.0 × 60kg × 0.5h = 240 / 벤치프레스 MET 5.0 × 60kg × 0.25h = 75 → 합계 315
+    ok("기본 체중 60kg 표시", txt("#weightBtn") === "체중 60kg");
+    ok("운동별 칼로리 표시",
+      q("#exList .ex .kc")[0].textContent === "240kcal" &&
+      q("#exList .ex .kc")[1].textContent === "75kcal");
+    ok("칼로리 합계", txt("#exKcal") === "약 315 kcal");
+
     el("exName").value = "스트레칭"; el("exMin").value = "0";
     submit(el("exForm"));
     ok("0분 입력 차단", q("#exList .ex").length === 2);
 
     q("#exList .ex")[1].querySelector(".del").click();   // 웨이트 삭제
     ok("삭제 후 합계 갱신", txt("#exTotal") === "30분" && txt("#exBreak") === "유산소 30분");
+    ok("삭제 후 칼로리 갱신", txt("#exKcal") === "약 240 kcal");
+
+    // 체중을 바꾸면 칼로리도 따라 바뀐다 (80kg → 8.0 × 80 × 0.5 = 320)
+    var realPrompt = window.prompt;
+    window.prompt = function () { return "80"; };
+    el("weightBtn").click();
+    window.prompt = realPrompt;
+    ok("체중 변경 반영", txt("#weightBtn") === "체중 80kg" && txt("#exKcal") === "약 320 kcal");
+    window.prompt = function () { return "60"; };
+    el("weightBtn").click();
+    window.prompt = realPrompt;
+    ok("체중 원복", txt("#exKcal") === "약 240 kcal");
 
     // ---------- 3. 수분 ----------
     for (var i = 0; i < 5; i++) el("waterPlus").click();
