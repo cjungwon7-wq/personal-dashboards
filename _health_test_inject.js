@@ -40,15 +40,22 @@
   ok("수면 시간 자동 계산 (자정 넘김)", txt("#sleepText") === "7시간 0분");
   ok("수면 목표 배지", txt("#sleepBadge") === "목표 달성");
 
-  // ---------- 핵심기능 3: 운동 기록 ----------
+  // ---------- 핵심기능 3: 운동 기록 (유산소 / 웨이트) ----------
   var exForm = document.getElementById("exForm");
-  [["러닝", "30"], ["요가", "15"]].forEach(function (p) {
-    document.getElementById("exName").value = p[0];
-    document.getElementById("exMin").value = p[1];
+  [["유산소", "러닝", "30"], ["웨이트", "벤치프레스", "15"]].forEach(function (p) {
+    document.querySelector('#exSeg .segbtn[data-type="' + p[0] + '"]').click();
+    document.getElementById("exName").value = p[1];
+    document.getElementById("exMin").value = p[2];
     submit(exForm);
   });
   ok("운동 2건 기록", document.querySelectorAll("#exList .ex").length === 2);
   ok("운동 시간 합계", txt("#exTotal") === "45분");
+
+  var exTags = document.querySelectorAll("#exList .ex .tag");
+  ok("운동 종류 구분 저장",
+    exTags.length === 2 && exTags[0].textContent.trim() === "유산소" && exTags[1].textContent.trim() === "웨이트");
+  ok("종류 아이콘 표시", document.querySelectorAll("#exList .ex .tag .tico").length === 2);
+  ok("종류별 합계", txt("#exBreak") === "유산소 30분 · 웨이트 15분");
 
   // 0분 입력은 기록되지 않아야 한다
   document.getElementById("exName").value = "스트레칭";
@@ -58,6 +65,7 @@
 
   document.querySelectorAll("#exList .ex")[1].querySelector(".del").click();
   ok("운동 삭제 후 합계 갱신", document.querySelectorAll("#exList .ex").length === 1 && txt("#exTotal") === "30분");
+  ok("삭제 후 종류별 합계 갱신", txt("#exBreak") === "유산소 30분");
 
   // ---------- 핵심기능 4: 물 섭취 ----------
   var plus = document.getElementById("waterPlus"), minus = document.getElementById("waterMinus");
@@ -96,18 +104,43 @@
   ok("체크 항목 삭제", document.querySelectorAll("#chkList .chk").length === 4);
 
   // ---------- 하단: 오늘의 점수 ----------
-  // 수면 7h(2.5) + 운동 30분(2.5) + 식단 3끼(2.5) + 물 4/8잔(1.25) = 8.75 → 8.8
+  // 수면 7h(2.5) + 운동 30분(2.5) + 식단 3끼(2.5) + 수분 4/8잔(1.25) = 8.75 → 8.8
   var total = parseFloat(txt("#scoreTotal"));
   ok("오늘의 점수 계산 (8.8 / 10)", Math.abs(total - 8.75) < 0.1);
   ok("항목별 점수 4행 표시", document.querySelectorAll("#scoreBars .sbar").length === 4);
-  ok("물 항목 부분 점수", txt("#scoreBars .s-water .spt") === "1.3");
+  ok("수분 항목 부분 점수", txt("#scoreBars .s-water .spt") === "1.3");
+  ok("점수 표정 — 상 (8점 이상 웃음)", txt("#scoreFace") === "😄");
+  ok("상단 요약 점수 동기화", txt("#heroScore") === "오늘 8.8점");
 
-  // ---------- 저장 지속성 ----------
+  // 점수를 낮춰 표정이 무표정 → 우는 표정으로 바뀌는지 확인 후 되돌린다
+  var minus = document.getElementById("waterMinus");
+  for (var w1 = 0; w1 < 4; w1++) minus.click();          // 수분 0잔 → 7.5점
+  document.querySelector("#exList .ex .del").click();     // 운동 0분 → 5.0점
+  ok("점수 표정 — 중 (5~8점 무표정)", txt("#scoreFace") === "😐");
+
+  document.querySelectorAll("#mealList .meal").forEach(function (li) { li.querySelector(".del").click(); });
+  ok("점수 표정 — 하 (5점 미만 우는 표정)", txt("#scoreFace") === "😢");
+
+  // 원상 복구
+  [["아침", "그릭요거트 + 바나나"], ["점심", "닭가슴살 샐러드"], ["저녁", "현미밥 + 된장국"]].forEach(function (p) {
+    document.querySelector('#mealSeg .segbtn[data-slot="' + p[0] + '"]').click();
+    document.getElementById("mealText").value = p[1];
+    submit(mealForm);
+  });
+  document.querySelector('#exSeg .segbtn[data-type="유산소"]').click();
+  document.getElementById("exName").value = "러닝";
+  document.getElementById("exMin").value = "30";
+  submit(exForm);
+  for (var w2 = 0; w2 < 4; w2++) plus.click();
+  ok("복구 후 점수 재계산", Math.abs(parseFloat(txt("#scoreTotal")) - 8.75) < 0.1);
+
+  // ---------- 저장 지속성 (v2 스키마) ----------
   var saved = null;
-  try { saved = JSON.parse(localStorage.getItem("health-dashboard-v1")); } catch (e) {}
-  ok("localStorage 저장",
+  try { saved = JSON.parse(localStorage.getItem("health-dashboard-v2")); } catch (e) {}
+  ok("localStorage v2 저장",
     !!saved && saved.meals.length === 3 && saved.workouts.length === 1 &&
     saved.water === 4 && saved.sleep.bed === "23:00" && saved.checks.length === 4);
+  ok("운동 종류가 저장에 포함", !!saved && saved.workouts[0].type === "유산소");
 
   // ---------- 결과 배너 ----------
   var passed = log.filter(function (x) { return x.pass; }).length;
