@@ -23,12 +23,21 @@
 
   Promise.resolve().then(function () {
 
-    // ---------- 0. 로그인 없이 바로 열린다 ----------
-    ok("로그인 게이트 없음", !el("authGate") && !el("authCard"));
-    ok("로그아웃 버튼 없음", !el("logoutBtn"));
-    ok("body 잠금 클래스 없음",
-      !document.body.classList.contains("locked") && !document.body.classList.contains("booting"));
-    ok("대시보드가 즉시 표시됨", !!el("mealForm") && el("mealForm").offsetParent !== null);
+    // ---------- 0. 로그인 ----------
+    ok("로그인 화면이 앱을 가림", document.body.classList.contains("locked"));
+    ok("첫 실행은 계정 만들기 모드", txt("#gateSubmit") === "계정 만들기");
+
+    // 짧은 비밀번호는 막힌다
+    el("gateName").value = "tester"; el("gatePw").value = "12";
+    submit(el("gateForm"));
+    ok("짧은 비밀번호 거부",
+      document.body.classList.contains("locked") && /4자 이상/.test(txt("#gateErr")));
+
+    el("gateName").value = "tester"; el("gatePw").value = "pw1234";
+    submit(el("gateForm"));
+    ok("계정 만들고 진입", !document.body.classList.contains("locked"));
+    ok("헤더에 계정 배지", txt("#meName") === "tester" && !!txt("#meAv"));
+    ok("대시보드가 표시됨", !!el("mealForm") && el("mealForm").offsetParent !== null);
     ok("기본 체크 항목 4종 생성", q("#chkList .chk").length === 4);
 
     // ---------- 1. 식단 ----------
@@ -135,15 +144,21 @@
     return sleep(400);
   }).then(function () {
 
-    // ---------- 8. 저장 지속성 (v3 · 날짜별) ----------
+    // ---------- 8. 저장 지속성 (계정별 · 날짜별) ----------
     var today = new Date();
     var key = today.getFullYear() + "-" +
       String(today.getMonth() + 1).padStart(2, "0") + "-" +
       String(today.getDate()).padStart(2, "0");
 
-    var db = null;
-    try { db = JSON.parse(localStorage.getItem("health-dashboard-v3")); } catch (e) {}
-    ok("v3 스키마로 저장", !!db && db.version === 3 && !!db.days);
+    var store = null;
+    try { store = JSON.parse(localStorage.getItem("health-dashboard-v3")); } catch (e) {}
+    ok("계정 스키마로 저장", !!store && store.version === 5 && Array.isArray(store.accounts));
+    ok("계정 1개 생성", !!store && store.accounts.length === 1 && store.accounts[0].name === "tester");
+    ok("비밀번호를 평문으로 두지 않음",
+      !!store && !/pw1234/.test(JSON.stringify(store)) &&
+      !!store.accounts[0].salt && !!store.accounts[0].hash);
+
+    var db = store && store.accounts[0].db;
     var d = db && db.days[key];
     ok("오늘 기록이 날짜 칸에 저장",
       !!d && d.meals.length === 3 && d.workouts.length === 1 &&
@@ -152,7 +167,6 @@
     ok("체크 항목은 날짜와 분리된 템플릿", !!db && db.checkItems.length === 4);
     ok("완료 표시는 날짜별로 보관", !!db && Array.isArray(db.checkMarks[key]) && db.checkMarks[key].length === 2);
     ok("메모는 날짜와 무관하게 보관", !!db && db.memos.length === 1);
-    ok("로그인 세션 키를 만들지 않음", !localStorage.getItem("health-dashboard-session"));
     ok("JS 오류 없음", jsError === "");
 
     // ---------- 9. 누적 기록 : 추이 · 지난 날 조회 ----------
@@ -182,9 +196,42 @@
       q("#waterCups .cup.on").length === 4);
     ok("총점 유지", txt("#scoreTotal") === "8.8");
 
-    var db2 = null;
-    try { db2 = JSON.parse(localStorage.getItem("health-dashboard-v3")); } catch (e) {}
-    ok("어제·오늘 두 날짜가 함께 보관됨", !!db2 && Object.keys(db2.days).length === 2);
+    var s2 = null;
+    try { s2 = JSON.parse(localStorage.getItem("health-dashboard-v3")); } catch (e) {}
+    ok("어제·오늘 두 날짜가 함께 보관됨",
+      !!s2 && Object.keys(s2.accounts[0].db.days).length === 2);
+
+    // ---------- 10. 계정 분리 ----------
+    el("signOutBtn").click();
+    ok("바꾸기 누르면 로그인 화면", document.body.classList.contains("locked"));
+    ok("만든 계정이 목록에 뜸", q("#whoList .whobtn").length === 1);
+
+    el("gateName").value = "tester"; el("gatePw").value = "wrong-pw";
+    submit(el("gateForm"));
+    ok("틀린 비밀번호 거부",
+      document.body.classList.contains("locked") && /비밀번호/.test(txt("#gateErr")));
+
+    el("gateSwitch").click();
+    el("gateName").value = "tester"; el("gatePw").value = "another";
+    submit(el("gateForm"));
+    ok("중복 아이디 거부", /이미 있는/.test(txt("#gateErr")));
+
+    el("gateName").value = "other"; el("gatePw").value = "pw9999";
+    submit(el("gateForm"));
+    ok("두 번째 계정 생성", !document.body.classList.contains("locked"));
+    ok("다른 계정은 남의 기록이 안 보임",
+      q("#mealList .meal").length === 0 && txt("#exTotal") === "0분" &&
+      q("#waterCups .cup.on").length === 0);
+    ok("다른 계정도 기본 체크 4종", q("#chkList .chk").length === 4);
+
+    // 원래 계정으로 돌아오면 기록이 그대로 있어야 한다
+    el("signOutBtn").click();
+    el("gateName").value = "tester"; el("gatePw").value = "pw1234";
+    submit(el("gateForm"));
+    ok("원래 계정 재로그인", !document.body.classList.contains("locked"));
+    ok("내 기록 그대로 유지",
+      q("#mealList .meal").length === 3 && txt("#exTotal") === "30분" &&
+      txt("#scoreTotal") === "8.8");
 
     // ---------- 결과 배너 ----------
     var passed = log.filter(function (x) { return x.pass; }).length;
