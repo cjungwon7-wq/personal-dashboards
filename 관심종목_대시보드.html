@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>모닝 대시보드</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #ffffff;
+    --plane: #eef1f7;
+    --text-primary: #10131c;
+    --text-secondary: #4a5468;
+    --text-muted: #8b93a7;
+    --grid: #e4e8f0;
+    --axis: #cdd4e0;
+    --border: #e1e6f0;
+    --accent: #1428a0;
+    --accent-hi: #1f5ae0;
+    --good: #0e9f6e;
+    --danger: #d0342c;
+    --ghost: rgba(20,40,160,0.06);
+    --cat-stock: #1428a0;
+    --cat-memo: #1b72e8;
+    --cat-check: #0e9f6e;
+    --shadow: 0 1px 2px rgba(16,24,40,.05), 0 10px 24px rgba(16,24,40,.06);
+    --banner: linear-gradient(118deg, #0a1657 0%, #1428a0 52%, #1f5ae0 100%);
+    --on-banner: rgba(255,255,255,0.72);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1: #161a24;
+      --plane: #0a0c12;
+      --text-primary: #f4f6fa;
+      --text-secondary: #b3bccd;
+      --text-muted: #7b8497;
+      --grid: #252b39;
+      --axis: #333b4c;
+      --border: #262d3c;
+      --accent: #5b8def;
+      --accent-hi: #7aa5f7;
+      --good: #2ecc8f;
+      --danger: #f2635a;
+      --ghost: rgba(91,141,239,0.14);
+      --cat-stock: #5b8def;
+      --cat-memo: #47a3f5;
+      --cat-check: #2ecc8f;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 10px 26px rgba(0,0,0,.42);
+      --banner: linear-gradient(118deg, #0a1657 0%, #16257e 55%, #2551b8 100%);
+      --on-banner: rgba(255,255,255,0.66);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1: #161a24;
+    --plane: #0a0c12;
+    --text-primary: #f4f6fa;
+    --text-secondary: #b3bccd;
+    --text-muted: #7b8497;
+    --grid: #252b39;
+    --axis: #333b4c;
+    --border: #262d3c;
+    --accent: #5b8def;
+    --accent-hi: #7aa5f7;
+    --good: #2ecc8f;
+    --danger: #f2635a;
+    --ghost: rgba(91,141,239,0.14);
+    --cat-stock: #5b8def;
+    --cat-memo: #47a3f5;
+    --cat-check: #2ecc8f;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 10px 26px rgba(0,0,0,.42);
+    --banner: linear-gradient(118deg, #0a1657 0%, #16257e 55%, #2551b8 100%);
+    --on-banner: rgba(255,255,255,0.66);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 20px 56px;
+    background: var(--plane); color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", "맑은 고딕", Malgun Gothic, sans-serif;
+    font-size: 14px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+
+  /* ---------- 상단 배너 ---------- */
+  header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    background: var(--banner); border-radius: 0 0 18px 18px;
+    padding: 26px 26px 22px; margin: 0 -6px 20px;
+    box-shadow: 0 8px 24px rgba(10,22,87,.18);
+  }
+  h1 { font-size: 23px; margin: 0 0 3px; letter-spacing: -0.02em; color: #fff; font-weight: 700; }
+  .today { color: var(--on-banner); font-size: 13px; margin: 0; letter-spacing: .01em; }
+  .headtools { display: flex; gap: 7px; }
+  header .btn {
+    background: rgba(255,255,255,.12); color: rgba(255,255,255,.92);
+    border-color: rgba(255,255,255,.22);
+  }
+  header .btn:hover { background: rgba(255,255,255,.22); color: #fff; }
+  .btn {
+    font: inherit; font-size: 12px; padding: 6px 13px; cursor: pointer;
+    background: var(--surface-1); color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 999px; white-space: nowrap;
+    transition: background .15s ease, color .15s ease;
+  }
+  .btn:hover { color: var(--text-primary); background: var(--ghost); }
+
+  .grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ---------- 카드 + 카테고리 색 구분 ---------- */
+  .card {
+    position: relative; overflow: hidden;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 18px 15px 20px;
+    box-shadow: var(--shadow);
+  }
+  .card::before {
+    content: ""; position: absolute; left: 0; top: 0;
+    width: 4px; height: 100%; background: var(--cat);
+  }
+  .card + .card { margin-top: 18px; }
+  .c-stock { --cat: var(--cat-stock); }
+  .c-memo  { --cat: var(--cat-memo); }
+  .c-check { --cat: var(--cat-check); }
+
+  .card h2 { font-size: 14.5px; margin: 0 0 3px; display: flex; align-items: center; gap: 9px; letter-spacing: -0.01em; }
+  .card h2::before {
+    content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--cat); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat) 16%, transparent);
+  }
+  .card .hint { font-size: 11.5px; color: var(--text-muted); margin: 0 0 14px; padding-left: 18px; }
+  .count {
+    font-size: 11px; font-weight: 600; margin-left: auto; font-variant-numeric: tabular-nums;
+    color: var(--cat); background: color-mix(in srgb, var(--cat) 10%, transparent);
+    border-radius: 999px; padding: 2px 9px;
+  }
+  .count:empty { display: none; }
+
+  form.addrow { display: flex; gap: 7px; margin-bottom: 14px; }
+  input[type="text"] {
+    font: inherit; font-size: 13px; padding: 8px 11px; flex: 1; min-width: 0;
+    background: var(--plane); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 9px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input[type="text"]:focus {
+    outline: none; border-color: var(--cat);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat) 15%, transparent);
+  }
+  input[type="text"]::placeholder { color: var(--text-muted); }
+  input.code { flex: 0 0 92px; font-variant-numeric: tabular-nums; }
+  .addbtn {
+    flex: none; background: var(--cat); color: #fff; border-color: transparent;
+    font-weight: 600; border-radius: 9px; padding: 6px 15px;
+  }
+  .addbtn:hover { background: var(--cat); color: #fff; filter: brightness(1.12); }
+
+  ul { list-style: none; margin: 0; padding: 0; }
+
+  /* ---------- 관심종목 ---------- */
+  .stock {
+    display: flex; align-items: center; gap: 10px; padding: 11px 12px;
+    border-radius: 10px; cursor: pointer;
+    border: 1px solid transparent; border-left: 3px solid transparent;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .stock + .stock { margin-top: 2px; }
+  .stock:hover { background: var(--ghost); }
+  .stock.on {
+    background: color-mix(in srgb, var(--cat) 8%, transparent);
+    border-color: color-mix(in srgb, var(--cat) 28%, transparent);
+    border-left-color: var(--cat);
+  }
+  .stock .nm { font-weight: 600; letter-spacing: -0.01em; }
+  .stock .cd {
+    font-size: 11.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums;
+    background: var(--plane); border-radius: 5px; padding: 1px 6px;
+  }
+  .stock .badge {
+    margin-left: auto; font-size: 11px; font-weight: 600; color: var(--cat);
+    background: color-mix(in srgb, var(--cat) 11%, transparent);
+    border-radius: 999px; padding: 2px 9px; font-variant-numeric: tabular-nums;
+  }
+  .del {
+    flex: none; font: inherit; font-size: 15px; line-height: 1; cursor: pointer;
+    background: none; border: none; color: var(--text-muted); padding: 3px 6px; border-radius: 6px;
+  }
+  .del:hover { color: #fff; background: var(--danger); }
+
+  /* ---------- 체크리스트 ---------- */
+  .chk {
+    display: flex; align-items: flex-start; gap: 11px; padding: 9px 10px;
+    border-radius: 9px; border-bottom: 1px solid var(--grid);
+  }
+  .chk:last-child { border-bottom: none; }
+  .chk:hover { background: var(--ghost); }
+  .chk input[type="checkbox"] { margin: 3px 0 0; width: 17px; height: 17px; accent-color: var(--cat); cursor: pointer; flex: none; }
+  .chk label { cursor: pointer; flex: 1; }
+  .chk.done label { color: var(--text-muted); text-decoration: line-through; }
+
+  .progress { display: flex; align-items: center; gap: 11px; margin-bottom: 14px; }
+  .track { flex: 1; height: 8px; background: var(--grid); border-radius: 99px; overflow: hidden; }
+  .fill {
+    height: 100%; border-radius: 99px; transition: width .25s ease;
+    background: linear-gradient(90deg, var(--cat), color-mix(in srgb, var(--cat) 55%, #ffffff));
+  }
+  .fill.all { box-shadow: 0 0 10px color-mix(in srgb, var(--good) 55%, transparent); }
+  .ptext { font-size: 12px; font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- 메모 ---------- */
+  .memoform { display: flex; flex-direction: column; gap: 9px; margin-bottom: 14px; }
+  textarea {
+    font: inherit; font-size: 13px; padding: 10px 12px; resize: vertical; min-height: 64px;
+    background: var(--plane); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 10px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  textarea:focus {
+    outline: none; border-color: var(--cat);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat) 15%, transparent);
+  }
+  textarea::placeholder { color: var(--text-muted); }
+  .memorow { display: flex; justify-content: space-between; align-items: center; }
+  .memorow .tip { font-size: 11.5px; color: var(--text-muted); }
+
+  .memo {
+    padding: 10px 12px; margin-bottom: 8px; border-radius: 0 9px 9px 0;
+    background: var(--plane); border-left: 3px solid color-mix(in srgb, var(--cat) 45%, transparent);
+  }
+  .memo .mt { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; display: flex; gap: 8px; align-items: center; }
+  .memo .mb { white-space: pre-wrap; word-break: break-word; margin-top: 3px; }
+  .memo:hover { border-left-color: var(--cat); }
+
+  .empty { color: var(--text-muted); font-size: 12.5px; padding: 18px 10px; text-align: center; }
+
+  footer { margin-top: 22px; font-size: 11.5px; color: var(--text-muted); text-align: center; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1 id="greet">모닝 대시보드</h1>
+      <p class="today" id="todayLine"></p>
+    </div>
+    <div class="headtools">
+      <button class="btn" id="exportBtn" type="button">백업 내보내기</button>
+      <button class="btn" id="importBtn" type="button">불러오기</button>
+      <button class="btn" id="themeBtn" type="button">다크 모드</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <section class="card c-stock">
+      <h2>관심종목 <span class="count" id="stockCount"></span></h2>
+      <p class="hint">종목을 클릭하면 오른쪽에서 메모를 볼 수 있습니다</p>
+      <form class="addrow" id="stockForm">
+        <input type="text" id="stockName" placeholder="종목명 (예: 삼성전자)" autocomplete="off" required>
+        <input type="text" id="stockCode" class="code" placeholder="코드" autocomplete="off" inputmode="numeric">
+        <button class="btn addbtn" type="submit">추가</button>
+      </form>
+      <ul id="stockList"></ul>
+    </section>
+
+    <div>
+      <section class="card c-memo">
+        <h2 id="memoTitle">메모</h2>
+        <p class="hint" id="memoHint">종목을 선택하면 메모를 남길 수 있습니다</p>
+        <div id="memoArea"></div>
+      </section>
+
+      <section class="card c-check">
+        <h2>오늘의 체크리스트 <span class="count" id="chkCount"></span></h2>
+        <p class="hint">매일 아침 자동으로 초기화됩니다</p>
+        <div class="progress">
+          <div class="track"><div class="fill" id="fill" style="width:0%"></div></div>
+          <span class="ptext" id="ptext">0 / 0</span>
+        </div>
+        <form class="addrow" id="chkForm">
+          <input type="text" id="chkText" placeholder="체크 항목 추가" autocomplete="off" required>
+          <button class="btn addbtn" type="submit">추가</button>
+        </form>
+        <ul id="chkList"></ul>
+      </section>
+    </div>
+
+  </div>
+
+  <footer id="footer"></footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var KEY = "morning-dashboard-v1";
+  var DEFAULT_CHECKS = [
+    "전일 미국 증시 마감 확인",
+    "주요 경제지표 · 오늘 일정 확인",
+    "관심종목 공시 확인",
+    "오늘 처리할 업무 3가지 정리"
+  ];
+
+  function todayKey(d) {
+    var y = d.getFullYear(),
+        m = String(d.getMonth() + 1).padStart(2, "0"),
+        day = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + day;
+  }
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  var state = load();
+  rolloverIfNewDay();
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var p = JSON.parse(raw);
+        if (p && Array.isArray(p.stocks) && Array.isArray(p.checks)) return p;
+      }
+    } catch (e) { /* 저장소 접근 불가 시 초기 상태로 시작 */ }
+    return {
+      stocks: [],
+      checks: DEFAULT_CHECKS.map(function (t) { return { id: uid(), text: t, done: false }; }),
+      checkDate: todayKey(new Date()),
+      selected: null
+    };
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) { console.warn("저장 실패", e); }
+  }
+
+  // 날짜가 바뀌면 체크 항목은 유지하고 완료 표시만 해제
+  function rolloverIfNewDay() {
+    var t = todayKey(new Date());
+    if (state.checkDate !== t) {
+      state.checks.forEach(function (c) { c.done = false; });
+      state.checkDate = t;
+      save();
+    }
+  }
+
+  /* ---------- 헤더 ---------- */
+  function paintHeader() {
+    var now = new Date();
+    var days = ["일", "월", "화", "수", "목", "금", "토"];
+    var h = now.getHours();
+    var hi = h < 11 ? "좋은 아침입니다" : (h < 18 ? "오늘도 수고 많으십니다" : "오늘 하루 마무리 잘 하세요");
+    document.getElementById("greet").textContent = hi;
+    document.getElementById("todayLine").textContent =
+      now.getFullYear() + "년 " + (now.getMonth() + 1) + "월 " + now.getDate() + "일 " +
+      days[now.getDay()] + "요일";
+  }
+
+  /* ---------- 관심종목 ---------- */
+  var stockList = document.getElementById("stockList");
+
+  document.getElementById("stockForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var nameEl = document.getElementById("stockName");
+    var codeEl = document.getElementById("stockCode");
+    var name = nameEl.value.trim();
+    if (!name) return;
+    var code = codeEl.value.trim();
+    var dup = state.stocks.some(function (s) {
+      return s.name === name && (s.code || "") === code;
+    });
+    if (dup) {
+      nameEl.select();
+      return;
+    }
+    var s = { id: uid(), name: name, code: code, memos: [] };
+    state.stocks.unshift(s);
+    state.selected = s.id;
+    nameEl.value = ""; codeEl.value = "";
+    nameEl.focus();
+    save(); render();
+  });
+
+  function renderStocks() {
+    stockList.textContent = "";
+    document.getElementById("stockCount").textContent =
+      state.stocks.length ? state.stocks.length + "개" : "";
+
+    if (!state.stocks.length) {
+      var e = document.createElement("li");
+      e.className = "empty";
+      e.textContent = "아직 등록된 종목이 없습니다. 위에서 추가해 보세요.";
+      stockList.appendChild(e);
+      return;
+    }
+
+    state.stocks.forEach(function (s) {
+      var li = document.createElement("li");
+      li.className = "stock" + (state.selected === s.id ? " on" : "");
+      li.tabIndex = 0;
+
+      var nm = document.createElement("span");
+      nm.className = "nm";
+      nm.textContent = s.name;
+      li.appendChild(nm);
+
+      if (s.code) {
+        var cd = document.createElement("span");
+        cd.className = "cd";
+        cd.textContent = s.code;
+        li.appendChild(cd);
+      }
+
+      var badge = document.createElement("span");
+      badge.className = "badge";
+      badge.textContent = "메모 " + s.memos.length;
+      li.appendChild(badge);
+
+      var del = document.createElement("button");
+      del.className = "del";
+      del.type = "button";
+      del.textContent = "×";
+      del.title = "삭제";
+      del.setAttribute("aria-label", s.name + " 삭제");
+      del.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        var msg = s.memos.length
+          ? s.name + " 종목을 삭제할까요? 메모 " + s.memos.length + "건도 함께 지워집니다."
+          : s.name + " 종목을 삭제할까요?";
+        if (!confirm(msg)) return;
+        state.stocks = state.stocks.filter(function (x) { return x.id !== s.id; });
+        if (state.selected === s.id) state.selected = null;
+        save(); render();
+      });
+      li.appendChild(del);
+
+      function pick() {
+        state.selected = (state.selected === s.id) ? null : s.id;
+        save(); render();
+      }
+      li.addEventListener("click", pick);
+      li.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(); }
+      });
+
+      stockList.appendChild(li);
+    });
+  }
+
+  /* ---------- 메모 ---------- */
+  var memoArea = document.getElementById("memoArea");
+
+  function renderMemo() {
+    var s = state.stocks.filter(function (x) { return x.id === state.selected; })[0];
+    memoArea.textContent = "";
+
+    var title = document.getElementById("memoTitle");
+    var hint = document.getElementById("memoHint");
+
+    if (!s) {
+      title.textContent = "메모";
+      hint.textContent = "종목을 선택하면 메모를 남길 수 있습니다";
+      var e = document.createElement("div");
+      e.className = "empty";
+      e.textContent = "위에서 종목을 클릭하세요.";
+      memoArea.appendChild(e);
+      return;
+    }
+
+    title.textContent = "메모 · " + s.name;
+    hint.textContent = "실적, 뉴스, 매매 근거를 남겨두면 다음 날 판단이 빨라집니다";
+
+    var form = document.createElement("form");
+    form.className = "memoform";
+
+    var ta = document.createElement("textarea");
+    ta.placeholder = "예) 2Q 실적 컨센 상회. 다음 주 CES 발표 확인 필요.";
+    form.appendChild(ta);
+
+    var row = document.createElement("div");
+    row.className = "memorow";
+    var tip = document.createElement("span");
+    tip.className = "tip";
+    tip.textContent = "Ctrl(⌘) + Enter 로 저장";
+    var btn = document.createElement("button");
+    btn.className = "btn addbtn";
+    btn.type = "submit";
+    btn.textContent = "메모 저장";
+    row.appendChild(tip); row.appendChild(btn);
+    form.appendChild(row);
+
+    function submit(e) {
+      if (e) e.preventDefault();
+      var text = ta.value.trim();
+      if (!text) return;
+      s.memos.unshift({ id: uid(), text: text, at: new Date().toISOString() });
+      ta.value = "";
+      save(); render();
+      var next = memoArea.querySelector("textarea");
+      if (next) next.focus();
+    }
+    form.addEventListener("submit", submit);
+    ta.addEventListener("keydown", function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") submit(e);
+    });
+    memoArea.appendChild(form);
+
+    if (!s.memos.length) {
+      var em = document.createElement("div");
+      em.className = "empty";
+      em.textContent = "아직 메모가 없습니다.";
+      memoArea.appendChild(em);
+      return;
+    }
+
+    s.memos.forEach(function (m) {
+      var box = document.createElement("div");
+      box.className = "memo";
+
+      var mt = document.createElement("div");
+      mt.className = "mt";
+      var when = new Date(m.at);
+      var stamp = document.createElement("span");
+      stamp.textContent =
+        (when.getMonth() + 1) + "/" + when.getDate() + " " +
+        String(when.getHours()).padStart(2, "0") + ":" +
+        String(when.getMinutes()).padStart(2, "0");
+      mt.appendChild(stamp);
+
+      var dm = document.createElement("button");
+      dm.className = "del";
+      dm.type = "button";
+      dm.textContent = "×";
+      dm.title = "메모 삭제";
+      dm.addEventListener("click", function () {
+        s.memos = s.memos.filter(function (x) { return x.id !== m.id; });
+        save(); render();
+      });
+      mt.appendChild(dm);
+      box.appendChild(mt);
+
+      var mb = document.createElement("div");
+      mb.className = "mb";
+      mb.textContent = m.text;
+      box.appendChild(mb);
+
+      memoArea.appendChild(box);
+    });
+  }
+
+  /* ---------- 체크리스트 ---------- */
+  var chkList = document.getElementById("chkList");
+
+  document.getElementById("chkForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var el = document.getElementById("chkText");
+    var text = el.value.trim();
+    if (!text) return;
+    state.checks.push({ id: uid(), text: text, done: false });
+    el.value = ""; el.focus();
+    save(); render();
+  });
+
+  function renderChecks() {
+    chkList.textContent = "";
+    var total = state.checks.length;
+    var done = state.checks.filter(function (c) { return c.done; }).length;
+    var pct = total ? Math.round(done / total * 100) : 0;
+
+    var fill = document.getElementById("fill");
+    fill.style.width = pct + "%";
+    fill.className = "fill" + (total && done === total ? " all" : "");
+    document.getElementById("ptext").textContent = done + " / " + total;
+    document.getElementById("chkCount").textContent = total && done === total ? "완료" : "";
+
+    if (!total) {
+      var e = document.createElement("li");
+      e.className = "empty";
+      e.textContent = "체크 항목이 없습니다.";
+      chkList.appendChild(e);
+      return;
+    }
+
+    state.checks.forEach(function (c) {
+      var li = document.createElement("li");
+      li.className = "chk" + (c.done ? " done" : "");
+
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = c.done;
+      box.id = "chk-" + c.id;
+      box.addEventListener("change", function () {
+        c.done = box.checked;
+        save(); render();
+      });
+
+      var lb = document.createElement("label");
+      lb.htmlFor = box.id;
+      lb.textContent = c.text;
+
+      var del = document.createElement("button");
+      del.className = "del";
+      del.type = "button";
+      del.textContent = "×";
+      del.title = "항목 삭제";
+      del.addEventListener("click", function () {
+        state.checks = state.checks.filter(function (x) { return x.id !== c.id; });
+        save(); render();
+      });
+
+      li.appendChild(box); li.appendChild(lb); li.appendChild(del);
+      chkList.appendChild(li);
+    });
+  }
+
+  /* ---------- 백업 ---------- */
+  document.getElementById("exportBtn").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "모닝대시보드_" + todayKey(new Date()) + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById("importBtn").addEventListener("click", function () {
+    document.getElementById("importFile").click();
+  });
+
+  document.getElementById("importFile").addEventListener("change", function (e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var p = JSON.parse(r.result);
+        if (!p || !Array.isArray(p.stocks) || !Array.isArray(p.checks)) throw new Error("형식 오류");
+        if (!confirm("현재 데이터를 불러온 파일로 덮어씁니다. 계속할까요?")) return;
+        state = p;
+        rolloverIfNewDay();
+        save(); render();
+      } catch (err) {
+        alert("불러오지 못했습니다. 이 대시보드에서 내보낸 JSON 파일인지 확인해 주세요.");
+      }
+    };
+    r.readAsText(f);
+    e.target.value = "";
+  });
+
+  /* ---------- 테마 ---------- */
+  var themeBtn = document.getElementById("themeBtn");
+  function isDark() {
+    var s = document.documentElement.getAttribute("data-theme");
+    if (s) return s === "dark";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  themeBtn.addEventListener("click", function () {
+    document.documentElement.setAttribute("data-theme", isDark() ? "light" : "dark");
+    themeBtn.textContent = isDark() ? "라이트 모드" : "다크 모드";
+  });
+
+  /* ---------- 렌더 ---------- */
+  function render() {
+    renderStocks();
+    renderMemo();
+    renderChecks();
+    document.getElementById("footer").textContent =
+      "데이터는 이 브라우저에만 저장됩니다. 시크릿 모드나 캐시 삭제 시 사라지니 가끔 백업을 내보내 두세요.";
+  }
+
+  paintHeader();
+  themeBtn.textContent = isDark() ? "라이트 모드" : "다크 모드";
+  render();
+  document.getElementById("stockName").focus();
+}());
+</script>
+</body>
+</html>

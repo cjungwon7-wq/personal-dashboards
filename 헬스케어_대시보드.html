@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오늘의 건강</title>
+<style>
+  /* ============================================================
+     Airbnb DLS — 흰 캔버스 + ink + Rausch 단일 액센트
+     시각적 무게는 일러스트(사진 자리)와 여백이 진다. 타이포는 절제.
+     ============================================================ */
+  :root {
+    color-scheme: light;
+    --rausch: #ff385c;
+    --rausch-active: #e00b41;
+    --rausch-soft: #ffd1da;
+    --ink: #222222;
+    --body: #3f3f3f;
+    --muted: #6a6a6a;
+    --muted-soft: #929292;
+    --hairline: #dddddd;
+    --hairline-soft: #ebebeb;
+    --border-strong: #c1c1c1;
+    --canvas: #ffffff;
+    --surface-soft: #f7f7f7;
+    --surface-strong: #f2f2f2;
+    --on-primary: #ffffff;
+    --error: #c13515;
+    /* 시스템 전체에 그림자는 이 한 단계뿐 */
+    --lift: rgba(0,0,0,0.02) 0 0 0 1px, rgba(0,0,0,0.04) 0 2px 6px 0, rgba(0,0,0,0.1) 0 4px 8px 0;
+    --r-sm: 8px;
+    --r-md: 14px;
+    --r-lg: 20px;
+    --r-full: 9999px;
+  }
+  /* Airbnb 공개 웹에는 다크 모드가 없다. 프로젝트 규칙(라이트/다크 병행)을 지키기 위해
+     ink 캔버스로 뒤집은 확장 팔레트를 별도로 정의한다. */
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --rausch: #ff5a75;
+      --rausch-active: #ff7a90;
+      --rausch-soft: #5c2733;
+      --ink: #f7f7f7;
+      --body: #dcdcdc;
+      --muted: #a8a8a8;
+      --muted-soft: #8a8a8a;
+      --hairline: #343434;
+      --hairline-soft: #2a2a2a;
+      --border-strong: #4a4a4a;
+      --canvas: #161616;
+      --surface-soft: #1e1e1e;
+      --surface-strong: #262626;
+      --on-primary: #1a1015;
+      --error: #ff8a72;
+      --lift: rgba(255,255,255,0.04) 0 0 0 1px, rgba(0,0,0,0.4) 0 2px 6px 0, rgba(0,0,0,0.5) 0 4px 8px 0;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --rausch: #ff5a75;
+    --rausch-active: #ff7a90;
+    --rausch-soft: #5c2733;
+    --ink: #f7f7f7;
+    --body: #dcdcdc;
+    --muted: #a8a8a8;
+    --muted-soft: #8a8a8a;
+    --hairline: #343434;
+    --hairline-soft: #2a2a2a;
+    --border-strong: #4a4a4a;
+    --canvas: #161616;
+    --surface-soft: #1e1e1e;
+    --surface-strong: #262626;
+    --on-primary: #1a1015;
+    --error: #ff8a72;
+    --lift: rgba(255,255,255,0.04) 0 0 0 1px, rgba(0,0,0,0.4) 0 2px 6px 0, rgba(0,0,0,0.5) 0 4px 8px 0;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 0 64px;
+    background: var(--canvas); color: var(--ink);
+    font-family: Inter, "Airbnb Cereal VF", Circular, -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", Roboto, "Apple SD Gothic Neo", "맑은 고딕", Malgun Gothic, sans-serif;
+    font-size: 16px; line-height: 1.5; letter-spacing: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+  @media (max-width: 640px) { .wrap { padding: 0 20px; } }
+
+  /* ---------- 상단 내비 ---------- */
+  .topnav {
+    height: 80px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--hairline-soft); margin-bottom: 32px;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+  .brand .mark { width: 26px; height: 26px; flex: none; color: var(--rausch); }
+  .iconbtn {
+    font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+    height: 40px; padding: 0 18px; border-radius: var(--r-full);
+    background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline);
+    transition: box-shadow .18s ease, border-color .18s ease;
+  }
+  .iconbtn:hover { box-shadow: var(--lift); border-color: transparent; }
+
+  /* ---------- 히어로 ---------- */
+  .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center; margin-bottom: 40px; }
+  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; gap: 20px; } }
+  h1 {
+    font-size: 28px; font-weight: 700; line-height: 1.25; letter-spacing: -0.4px;
+    margin: 0 0 8px; color: var(--ink);
+  }
+  h1 .emo { font-size: 30px; line-height: 1; margin-right: 6px; }
+  .today { color: var(--muted); font-size: 16px; margin: 0 0 18px; }
+  .herostats { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill {
+    font-size: 14px; font-weight: 500; color: var(--ink);
+    border: 1px solid var(--hairline); border-radius: var(--r-full); padding: 7px 15px;
+    background: var(--canvas);
+  }
+  .heroart { border-radius: var(--r-lg); overflow: hidden; aspect-ratio: 13 / 5; }
+  .heroart svg { display: block; width: 100%; height: 100%; }
+
+  /* ---------- 그리드 ---------- */
+  .grid { display: grid; grid-template-columns: 1.02fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ---------- 카드 ---------- */
+  .card {
+    background: var(--canvas); border: 1px solid var(--hairline-soft);
+    border-radius: var(--r-md); overflow: hidden;
+    transition: box-shadow .18s ease;
+  }
+  .card:hover { box-shadow: var(--lift); }
+  .card + .card { margin-top: 24px; }
+  .plate { aspect-ratio: 40 / 11; background: var(--surface-soft); }
+  .plate svg { display: block; width: 100%; height: 100%; }
+  .cardbody { padding: 20px 24px 22px; }
+
+  .cardhead { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+  .cardhead .glyph { width: 22px; height: 22px; flex: none; color: var(--ink); }
+  h2 { font-size: 20px; font-weight: 600; line-height: 1.2; letter-spacing: -0.18px; margin: 0; }
+  .count {
+    margin-left: auto; font-size: 11px; font-weight: 600; line-height: 1.18;
+    color: var(--ink); background: var(--surface-strong);
+    border-radius: var(--r-full); padding: 4px 10px; font-variant-numeric: tabular-nums;
+  }
+  .count:empty { display: none; }
+  .hint { font-size: 14px; color: var(--muted); margin: 0 0 18px; }
+
+  /* ---------- 폼 ---------- */
+  form.addrow { display: flex; gap: 8px; margin-bottom: 16px; }
+  input[type="text"], input[type="time"], textarea {
+    font: inherit; font-size: 16px; color: var(--ink); background: var(--canvas);
+    border: 1px solid var(--hairline); border-radius: var(--r-sm);
+    padding: 12px 14px; flex: 1; min-width: 0;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input[type="text"]:focus, input[type="time"]:focus, textarea:focus {
+    outline: none; border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink);
+  }
+  ::placeholder { color: var(--muted-soft); }
+  input.mins { flex: 0 0 88px; font-variant-numeric: tabular-nums; }
+  .addbtn {
+    flex: none; font: inherit; font-size: 16px; font-weight: 500; cursor: pointer;
+    background: var(--rausch); color: var(--on-primary); border: none;
+    border-radius: var(--r-sm); padding: 12px 22px;
+    transition: background .15s ease;
+  }
+  .addbtn:hover { background: var(--rausch-active); }
+
+  ul { list-style: none; margin: 0; padding: 0; }
+
+  /* ---------- 끼니 선택 ---------- */
+  .seg { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .segbtn {
+    font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+    padding: 8px 16px; border-radius: var(--r-full);
+    background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline);
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .segbtn:hover { border-color: var(--ink); }
+  .segbtn[aria-pressed="true"] { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+
+  /* ---------- 목록 행 ---------- */
+  .row {
+    display: flex; align-items: center; gap: 12px; padding: 13px 2px;
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+  .row:last-child { border-bottom: none; }
+  .row .tag {
+    flex: none; font-size: 11px; font-weight: 600; color: var(--ink);
+    background: var(--surface-strong); border-radius: var(--r-full); padding: 4px 10px;
+  }
+  .row .txt { flex: 1; font-size: 15px; color: var(--body); word-break: break-word; }
+  .row .num { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .del {
+    flex: none; font: inherit; font-size: 16px; line-height: 1; cursor: pointer;
+    width: 30px; height: 30px; padding: 0; border-radius: var(--r-full);
+    background: transparent; border: none; color: var(--muted-soft);
+    transition: background .15s ease, color .15s ease;
+  }
+  .del:hover { background: var(--surface-strong); color: var(--error); }
+
+  /* ---------- 합계 ---------- */
+  .total {
+    display: flex; align-items: baseline; gap: 10px; margin-top: 14px;
+    padding: 14px 16px; border-radius: var(--r-md); background: var(--surface-soft);
+  }
+  .total .big { font-size: 22px; font-weight: 500; letter-spacing: -0.44px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .total .sub { font-size: 14px; color: var(--muted); }
+
+  /* ---------- 수면 ---------- */
+  .timerow { display: flex; align-items: center; gap: 10px; }
+  .timerow label { font-size: 14px; font-weight: 500; color: var(--muted); flex: none; }
+  .timerow .arrow { color: var(--muted-soft); flex: none; }
+
+  /* ---------- 물 ---------- */
+  .waterctl { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .stepper {
+    font: inherit; font-size: 18px; line-height: 1; cursor: pointer;
+    width: 36px; height: 36px; padding: 0; border-radius: var(--r-full);
+    background: var(--canvas); color: var(--ink); border: 1px solid var(--border-strong);
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .stepper:hover { border-color: var(--ink); }
+  .waternum { font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .waternum .of { color: var(--muted); font-weight: 400; }
+  .cups { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cup {
+    cursor: pointer; width: 30px; height: 30px; padding: 0;
+    border-radius: var(--r-full); background: var(--canvas);
+    border: 1px solid var(--hairline);
+    transition: background .15s ease, border-color .15s ease, transform .12s ease;
+  }
+  .cup:hover { border-color: var(--ink); transform: scale(1.06); }
+  .cup.on { background: var(--ink); border-color: var(--ink); }
+
+  /* ---------- 체크리스트 ---------- */
+  .chk {
+    display: flex; align-items: flex-start; gap: 14px; padding: 12px 2px;
+    border-bottom: 1px solid var(--hairline-soft);
+  }
+  .chk:last-child { border-bottom: none; }
+  .chk input[type="checkbox"] {
+    margin: 2px 0 0; width: 20px; height: 20px; flex: none; cursor: pointer;
+    accent-color: var(--ink);
+  }
+  .chk label { cursor: pointer; flex: 1; font-size: 15px; color: var(--body); }
+  .chk.done label { color: var(--muted-soft); text-decoration: line-through; }
+
+  .progress { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .track { flex: 1; height: 4px; background: var(--hairline-soft); border-radius: var(--r-full); overflow: hidden; }
+  .fill { height: 100%; background: var(--ink); border-radius: var(--r-full); transition: width .3s ease; }
+  .fill.all { background: var(--rausch); }
+  .ptext { font-size: 14px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- 메모 ---------- */
+  .memoform { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+  textarea { resize: vertical; min-height: 84px; line-height: 1.5; }
+  .memorow { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .memorow .tip { font-size: 13px; color: var(--muted-soft); }
+  .memo { padding: 14px 0; border-bottom: 1px solid var(--hairline-soft); }
+  .memo:last-child { border-bottom: none; }
+  .memo .mt {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+    font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .memo .mb { font-size: 15px; color: var(--body); white-space: pre-wrap; word-break: break-word; }
+
+  /* ---------- 오늘의 점수 ---------- */
+  .scorecard { margin-top: 24px; padding: 36px 24px 32px; border-top: 1px solid var(--hairline); }
+  .scorebody { display: grid; grid-template-columns: 300px 1fr; gap: 48px; align-items: center; }
+  @media (max-width: 820px) { .scorebody { grid-template-columns: 1fr; gap: 28px; } }
+  .scorehero { text-align: center; }
+  .scoreline { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .scoreline .laurel { width: 30px; height: 62px; color: var(--ink); flex: none; }
+  .scoreline .v {
+    font-size: 64px; font-weight: 700; line-height: 1.1; letter-spacing: -1px;
+    color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  .scoreof { font-size: 14px; color: var(--muted); margin-top: 2px; }
+  .scoreword { font-size: 15px; color: var(--body); margin-top: 10px; }
+  .sbars { display: grid; gap: 18px; }
+  .sbar { display: grid; grid-template-columns: 52px 1fr 116px 44px; gap: 14px; align-items: center; }
+  @media (max-width: 520px) { .sbar { grid-template-columns: 46px 1fr 44px; } .sbar .sval { display: none; } }
+  .sbar .slab { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .sbar .strack { height: 4px; background: var(--hairline-soft); border-radius: var(--r-full); overflow: hidden; }
+  .sbar .sfill { height: 100%; background: var(--ink); border-radius: var(--r-full); transition: width .35s ease; }
+  .sbar .sval { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .sbar .spt { font-size: 14px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; }
+
+  .empty { color: var(--muted); font-size: 14px; padding: 20px 0; }
+  footer { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--hairline-soft); font-size: 13px; color: var(--muted); }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="topnav">
+    <span class="brand">
+      <svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true" focusable="false">
+        <path d="M16 28c-1.9 0-3.4-1-4.6-3.2C8.6 19.6 5 13.4 5 10.2 5 6.7 7.6 4 11 4c2 0 3.8 1 5 2.7C17.2 5 19 4 21 4c3.4 0 6 2.7 6 6.2 0 3.2-3.6 9.4-6.4 14.6C19.4 27 17.9 28 16 28z"
+              fill="currentColor"/>
+      </svg>
+      오늘의 건강
+    </span>
+    <button class="iconbtn" id="themeBtn" type="button">다크 모드</button>
+  </nav>
+
+  <!-- 상단 : 인사 · 날짜 -->
+  <header class="hero">
+    <div>
+      <h1 id="greet"><span class="emo" id="greetEmo">☀️</span><span id="greetText">오늘의 건강</span></h1>
+      <p class="today" id="todayLine"></p>
+      <div class="herostats">
+        <span class="pill">식단 · 수면 · 운동</span>
+        <span class="pill" id="heroScore">오늘 0.0점</span>
+      </div>
+    </div>
+    <div class="heroart">
+      <svg viewBox="0 0 520 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="gHero" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#FFF1E4"/><stop offset=".52" stop-color="#FFE2EA"/><stop offset="1" stop-color="#E8EEFF"/>
+          </linearGradient>
+        </defs>
+        <rect width="520" height="200" fill="url(#gHero)"/>
+        <circle cx="404" cy="60" r="54" fill="#FFC978" opacity=".22"/>
+        <circle cx="404" cy="60" r="33" fill="#FFC978"/>
+        <g fill="#ffffff" opacity=".62">
+          <circle cx="96" cy="54" r="15"/><circle cx="120" cy="50" r="22"/><circle cx="148" cy="56" r="14"/>
+          <rect x="94" y="50" width="58" height="20" rx="10"/>
+        </g>
+        <path d="M0 146 Q92 106 184 138 T382 136 T520 150 L520 200 L0 200 Z" fill="#FFB2A0" opacity=".5"/>
+        <path d="M0 168 Q124 138 246 166 T520 166 L520 200 L0 200 Z" fill="#8FD3C4" opacity=".62"/>
+        <path d="M286 96 C286 70 308 52 336 52 C336 78 314 96 286 96 Z" fill="#7FC8A9" opacity=".75"/>
+        <path d="M336 52 C322 64 306 80 292 94" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity=".7" fill="none"/>
+        <g fill="#ffffff" opacity=".8">
+          <circle cx="240" cy="44" r="3.5"/><circle cx="262" cy="66" r="2.5"/><circle cx="212" cy="72" r="2.5"/>
+        </g>
+      </svg>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- 좌측 : 핵심기능 -->
+    <div>
+
+      <section class="card">
+        <div class="plate">
+          <svg viewBox="0 0 400 110" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+            <defs><linearGradient id="gMeal" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#FFF3E2"/><stop offset="1" stop-color="#FFD8C0"/>
+            </linearGradient></defs>
+            <rect width="400" height="110" fill="url(#gMeal)"/>
+            <circle cx="132" cy="56" r="42" fill="#ffffff" opacity=".9"/>
+            <circle cx="116" cy="44" r="13" fill="#84C58E"/>
+            <circle cx="145" cy="41" r="10" fill="#FF7F6B"/>
+            <circle cx="124" cy="69" r="12" fill="#FFD275"/>
+            <circle cx="150" cy="65" r="9" fill="#A6DBBB"/>
+            <circle cx="136" cy="55" r="6" fill="#F2A65A"/>
+            <g fill="#E29A6B" opacity=".9">
+              <rect x="196" y="30" width="5" height="52" rx="2.5"/>
+              <rect x="192" y="26" width="4" height="16" rx="2"/><rect x="201" y="26" width="4" height="16" rx="2"/>
+            </g>
+            <g fill="#ffffff" opacity=".85">
+              <path d="M240 46 h34 a4 4 0 0 1 4 4 v14 a16 16 0 0 1 -16 16 h-10 a16 16 0 0 1 -16 -16 v-14 a4 4 0 0 1 4 -4 z"/>
+              <path d="M278 52 h6 a9 9 0 0 1 0 18 h-6" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+            </g>
+            <g fill="#E2A07E" opacity=".55">
+              <circle cx="318" cy="40" r="5"/><circle cx="338" cy="60" r="3.5"/><circle cx="308" cy="70" r="3"/>
+            </g>
+          </svg>
+        </div>
+        <div class="cardbody">
+          <div class="cardhead">
+            <h2>식단 기록</h2>
+            <span class="count" id="mealCount"></span>
+          </div>
+          <p class="hint">끼니를 고르고 먹은 것을 적은 뒤 Enter</p>
+          <div class="seg" id="mealSeg">
+            <button class="segbtn" type="button" data-slot="아침" aria-pressed="false">아침</button>
+            <button class="segbtn" type="button" data-slot="점심" aria-pressed="false">점심</button>
+            <button class="segbtn" type="button" data-slot="저녁" aria-pressed="false">저녁</button>
+            <button class="segbtn" type="button" data-slot="간식" aria-pressed="false">간식</button>
+          </div>
+          <form class="addrow" id="mealForm">
+            <input type="text" id="mealText" placeholder="예: 그릭요거트 + 바나나" autocomplete="off" required>
+            <button class="addbtn" type="submit">기록</button>
+          </form>
+          <ul id="mealList"></ul>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="plate">
+          <svg viewBox="0 0 400 110" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+            <defs>
+              <linearGradient id="gSleep" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#EFEBFF"/><stop offset="1" stop-color="#C8C4F2"/>
+              </linearGradient>
+              <mask id="mMoon">
+                <rect width="400" height="110" fill="#000"/>
+                <circle cx="296" cy="44" r="25" fill="#fff"/>
+                <circle cx="284" cy="36" r="23" fill="#000"/>
+              </mask>
+            </defs>
+            <rect width="400" height="110" fill="url(#gSleep)"/>
+            <rect width="400" height="110" fill="#FFEEB0" mask="url(#mMoon)"/>
+            <g fill="#ffffff" opacity=".9">
+              <path d="M334 30 l2.2 5.4 5.4 2.2 -5.4 2.2 -2.2 5.4 -2.2 -5.4 -5.4 -2.2 5.4 -2.2 z"/>
+              <path d="M246 22 l1.6 3.9 3.9 1.6 -3.9 1.6 -1.6 3.9 -1.6 -3.9 -3.9 -1.6 3.9 -1.6 z"/>
+              <path d="M352 70 l1.4 3.4 3.4 1.4 -3.4 1.4 -1.4 3.4 -1.4 -3.4 -3.4 -1.4 3.4 -1.4 z"/>
+            </g>
+            <g opacity=".92">
+              <rect x="52" y="72" width="150" height="26" rx="10" fill="#ffffff"/>
+              <rect x="44" y="60" width="62" height="26" rx="12" fill="#F3F0FF"/>
+              <rect x="44" y="86" width="158" height="10" rx="5" fill="#B9B3EA"/>
+            </g>
+            <g fill="#ffffff" opacity=".55">
+              <circle cx="112" cy="34" r="12"/><circle cx="132" cy="30" r="17"/><circle cx="154" cy="36" r="11"/>
+              <rect x="110" y="30" width="46" height="15" rx="7.5"/>
+            </g>
+          </svg>
+        </div>
+        <div class="cardbody">
+          <div class="cardhead">
+            <h2>수면 기록</h2>
+            <span class="count" id="sleepBadge"></span>
+          </div>
+          <p class="hint">취침·기상 시각을 넣으면 수면 시간이 자동 계산됩니다</p>
+          <div class="timerow">
+            <label for="sleepBed">취침</label>
+            <input type="time" id="sleepBed">
+            <span class="arrow">→</span>
+            <label for="sleepWake">기상</label>
+            <input type="time" id="sleepWake">
+          </div>
+          <div class="total">
+            <span class="big" id="sleepText">—</span>
+            <span class="sub">목표 7시간</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="plate">
+          <svg viewBox="0 0 400 110" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+            <defs><linearGradient id="gRun" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#FFE9ED"/><stop offset="1" stop-color="#FFC2CE"/>
+            </linearGradient></defs>
+            <rect width="400" height="110" fill="url(#gRun)"/>
+            <g stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity=".85">
+              <path d="M40 40 h44"/><path d="M26 60 h34"/><path d="M46 80 h26"/>
+            </g>
+            <g transform="translate(128 10)">
+              <circle cx="54" cy="15" r="11" fill="#FF6B85"/>
+              <path d="M47 29 C58 25 68 30 69 40 L59 50 L46 43 Z" fill="#FF6B85"/>
+              <path d="M50 46 L37 65 L24 71" stroke="#FF6B85" stroke-width="9"
+                    stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M61 48 L71 65 L86 69" stroke="#FF6B85" stroke-width="9"
+                    stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M52 33 L33 40" stroke="#FF93A6" stroke-width="8" stroke-linecap="round" fill="none"/>
+              <path d="M65 35 L82 25" stroke="#FF93A6" stroke-width="8" stroke-linecap="round" fill="none"/>
+            </g>
+            <rect x="0" y="94" width="400" height="16" fill="#ffffff" opacity=".55"/>
+            <g fill="#ffffff" opacity=".9">
+              <rect x="300" y="46" width="38" height="12" rx="6"/>
+              <rect x="290" y="38" width="12" height="28" rx="5"/>
+              <rect x="336" y="38" width="12" height="28" rx="5"/>
+            </g>
+          </svg>
+        </div>
+        <div class="cardbody">
+          <div class="cardhead">
+            <h2>운동 기록</h2>
+            <span class="count" id="exCount"></span>
+          </div>
+          <p class="hint">어떤 운동을 몇 분간 했는지 남겨두세요</p>
+          <form class="addrow" id="exForm">
+            <input type="text" id="exName" placeholder="예: 러닝, 하체 웨이트" autocomplete="off" required>
+            <input type="text" id="exMin" class="mins" placeholder="분" autocomplete="off" inputmode="numeric" required>
+            <button class="addbtn" type="submit">기록</button>
+          </form>
+          <ul id="exList"></ul>
+          <div class="total">
+            <span class="big" id="exTotal">0분</span>
+            <span class="sub">목표 30분</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 우측 : 메모 · 체크리스트 · 물 -->
+    <div>
+
+      <section class="card">
+        <div class="cardbody">
+          <div class="cardhead">
+            <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-6"/>
+              <path d="M18.4 2.6a2 2 0 0 1 2.8 2.8L14 12.6l-3.5.7.7-3.5z"/>
+              <path d="M8 8h4M8 12h3"/>
+            </svg>
+            <h2>메모</h2>
+            <span class="count" id="memoCount"></span>
+          </div>
+          <p class="hint">컨디션, 식욕, 몸 상태 — Ctrl(⌘) + Enter 로 저장</p>
+          <form class="memoform" id="memoForm">
+            <textarea id="memoText" placeholder="예) 어제 야식 때문인지 아침에 붓기. 오늘은 저녁 8시 이후 금식."></textarea>
+            <div class="memorow">
+              <span class="tip">Ctrl(⌘) + Enter 로 저장</span>
+              <button class="addbtn" type="submit">메모 저장</button>
+            </div>
+          </form>
+          <div id="memoList"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="cardbody">
+          <div class="cardhead">
+            <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M3.5 6.5l2 2 3.5-3.5"/><path d="M3.5 12.5l2 2 3.5-3.5"/><path d="M3.5 18.5l2 2 3.5-3.5"/>
+              <path d="M13 7h8M13 13h8M13 19h6"/>
+            </svg>
+            <h2>오늘의 체크리스트</h2>
+            <span class="count" id="chkCount"></span>
+          </div>
+          <p class="hint">매일 자정이 지나면 체크만 자동으로 해제됩니다</p>
+          <div class="progress">
+            <div class="track"><div class="fill" id="fill" style="width:0%"></div></div>
+            <span class="ptext" id="ptext">0 / 0</span>
+          </div>
+          <form class="addrow" id="chkForm">
+            <input type="text" id="chkText" placeholder="체크 항목 추가" autocomplete="off" required>
+            <button class="addbtn" type="submit">추가</button>
+          </form>
+          <ul id="chkList"></ul>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="plate">
+          <svg viewBox="0 0 400 110" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+            <defs><linearGradient id="gWater" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#E6F6FC"/><stop offset="1" stop-color="#BCE5F3"/>
+            </linearGradient></defs>
+            <rect width="400" height="110" fill="url(#gWater)"/>
+            <path d="M148 22 h64 l-7 66 a10 10 0 0 1 -10 9 h-30 a10 10 0 0 1 -10 -9 z" fill="#ffffff" opacity=".92"/>
+            <path d="M152 46 h56 l-5 42 a10 10 0 0 1 -10 9 h-26 a10 10 0 0 1 -10 -9 z" fill="#5FC0DE"/>
+            <ellipse cx="180" cy="22" rx="32" ry="6" fill="#ffffff" opacity=".95"/>
+            <g fill="#ffffff" opacity=".85">
+              <circle cx="168" cy="62" r="4"/><circle cx="192" cy="74" r="3"/><circle cx="178" cy="82" r="2.5"/>
+            </g>
+            <g fill="#7FCFE6" opacity=".8">
+              <path d="M282 30 c9 12 14 19 14 25 a14 14 0 0 1 -28 0 c0 -6 5 -13 14 -25 z"/>
+              <path d="M322 56 c6 8 9 12 9 16 a9 9 0 0 1 -18 0 c0 -4 3 -8 9 -16 z"/>
+            </g>
+            <g stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity=".7">
+              <path d="M56 42 h32"/><path d="M44 62 h26"/><path d="M62 80 h20"/>
+            </g>
+          </svg>
+        </div>
+        <div class="cardbody">
+          <div class="cardhead">
+            <h2>물 섭취</h2>
+            <span class="count" id="waterBadge"></span>
+          </div>
+          <p class="hint">한 잔(약 250ml) 마실 때마다 눌러 주세요</p>
+          <div class="waterctl">
+            <button class="stepper" id="waterMinus" type="button" aria-label="한 잔 빼기">−</button>
+            <button class="stepper" id="waterPlus" type="button" aria-label="한 잔 더하기">+</button>
+            <span class="waternum" id="waterText">0 / 8잔</span>
+          </div>
+          <div class="cups" id="waterCups"></div>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <!-- 하단 : 오늘의 점수 -->
+  <section class="scorecard">
+    <div class="scorebody">
+      <div class="scorehero">
+        <div class="scoreline">
+          <svg class="laurel" viewBox="0 0 30 62" fill="none" stroke="currentColor" stroke-width="1.4"
+               stroke-linecap="round" aria-hidden="true" focusable="false">
+            <path d="M24 4C12 12 6 24 6 36c0 9 3 17 8 22"/>
+            <path d="M22 12c-6 0-9 3-10 7M20 22c-6-1-9 2-11 6M18 33c-5-2-9 0-11 4M18 44c-5-3-8-1-10 3"/>
+          </svg>
+          <span class="v" id="scoreTotal">0.0</span>
+          <svg class="laurel" viewBox="0 0 30 62" fill="none" stroke="currentColor" stroke-width="1.4"
+               stroke-linecap="round" aria-hidden="true" focusable="false" style="transform:scaleX(-1)">
+            <path d="M24 4C12 12 6 24 6 36c0 9 3 17 8 22"/>
+            <path d="M22 12c-6 0-9 3-10 7M20 22c-6-1-9 2-11 6M18 33c-5-2-9 0-11 4M18 44c-5-3-8-1-10 3"/>
+          </svg>
+        </div>
+        <div class="scoreof">10점 만점</div>
+        <div class="scoreword" id="scoreWord"></div>
+      </div>
+      <div class="sbars" id="scoreBars"></div>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var KEY = "health-dashboard-v1";
+  var SLOTS = ["아침", "점심", "저녁", "간식"];
+  var GOAL = { sleep: 7, ex: 30, meal: 3, water: 8 };
+  var DEFAULT_CHECKS = [
+    "일어나서 물 한 잔",
+    "계단 이용하기",
+    "야식 먹지 않기",
+    "12시 전에 눕기"
+  ];
+
+  function todayKey(d) {
+    return d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0");
+  }
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+  function defaultSlot() {
+    var h = new Date().getHours();
+    if (h < 11) return "아침";
+    if (h < 16) return "점심";
+    if (h < 21) return "저녁";
+    return "간식";
+  }
+
+  var state = load();
+  var slot = defaultSlot();
+  rolloverIfNewDay();
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var p = JSON.parse(raw);
+        if (p && Array.isArray(p.meals) && Array.isArray(p.workouts) && Array.isArray(p.checks)) return p;
+      }
+    } catch (e) { /* 저장소 접근 불가 시 초기 상태로 시작 */ }
+    return freshState();
+  }
+
+  function freshState() {
+    return {
+      date: todayKey(new Date()),
+      meals: [],
+      sleep: { bed: "", wake: "" },
+      workouts: [],
+      water: 0,
+      memos: [],
+      checks: DEFAULT_CHECKS.map(function (t) { return { id: uid(), text: t, done: false }; })
+    };
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) { console.warn("저장 실패", e); }
+  }
+
+  // 날짜가 바뀌면 오늘 기록(식단·수면·운동·물)은 비우고,
+  // 체크 항목은 유지한 채 완료 표시만 해제한다. 메모는 남긴다.
+  function rolloverIfNewDay() {
+    var t = todayKey(new Date());
+    if (state.date === t) return;
+    state.date = t;
+    state.meals = [];
+    state.sleep = { bed: "", wake: "" };
+    state.workouts = [];
+    state.water = 0;
+    state.checks.forEach(function (c) { c.done = false; });
+    save();
+  }
+
+  /* ---------- 상단 인사 ---------- */
+  function paintHeader() {
+    var now = new Date();
+    var days = ["일", "월", "화", "수", "목", "금", "토"];
+    var h = now.getHours();
+    var g = h < 5  ? ["🌙", "아직 안 잤네요, 오늘은 일찍 눕기"]
+          : h < 11 ? ["☀️", "좋은 아침이에요"]
+          : h < 14 ? ["🥗", "점심은 잘 챙겼나요"]
+          : h < 18 ? ["🌤️", "오늘도 잘 가고 있어요"]
+          : h < 22 ? ["🌆", "하루 마무리 잘 하세요"]
+          :          ["🌙", "오늘 하루 수고했어요"];
+    document.getElementById("greetEmo").textContent = g[0];
+    document.getElementById("greetText").textContent = g[1];
+    document.getElementById("todayLine").textContent =
+      now.getFullYear() + "년 " + (now.getMonth() + 1) + "월 " + now.getDate() + "일 " +
+      days[now.getDay()] + "요일";
+  }
+
+  /* ---------- 공통 ---------- */
+  function emptyRow(parent, text) {
+    var e = document.createElement("li");
+    e.className = "empty";
+    e.textContent = text;
+    parent.appendChild(e);
+  }
+  function delButton(label, fn) {
+    var b = document.createElement("button");
+    b.className = "del";
+    b.type = "button";
+    b.textContent = "×";
+    b.title = "삭제";
+    b.setAttribute("aria-label", label);
+    b.addEventListener("click", fn);
+    return b;
+  }
+
+  /* ---------- 핵심기능 1 : 식단 ---------- */
+  var mealSeg = document.getElementById("mealSeg");
+  var mealList = document.getElementById("mealList");
+
+  mealSeg.addEventListener("click", function (e) {
+    var b = e.target.closest(".segbtn");
+    if (!b) return;
+    slot = b.getAttribute("data-slot");
+    paintSeg();
+    document.getElementById("mealText").focus();
+  });
+
+  function paintSeg() {
+    Array.prototype.forEach.call(mealSeg.querySelectorAll(".segbtn"), function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-slot") === slot ? "true" : "false");
+    });
+  }
+
+  document.getElementById("mealForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var el = document.getElementById("mealText");
+    var text = el.value.trim();
+    if (!text) return;
+    state.meals.push({ id: uid(), slot: slot, text: text, at: new Date().toISOString() });
+    el.value = ""; el.focus();
+    save(); render();
+  });
+
+  function renderMeals() {
+    mealList.textContent = "";
+    var order = {};
+    SLOTS.forEach(function (s, i) { order[s] = i; });
+    var sorted = state.meals.slice().sort(function (a, b) { return order[a.slot] - order[b.slot]; });
+
+    document.getElementById("mealCount").textContent =
+      state.meals.length ? state.meals.length + "건" : "";
+
+    if (!sorted.length) {
+      emptyRow(mealList, "아직 오늘 식단 기록이 없습니다.");
+      return;
+    }
+
+    sorted.forEach(function (m) {
+      var li = document.createElement("li");
+      li.className = "row meal";
+
+      var tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = m.slot;
+      li.appendChild(tag);
+
+      var txt = document.createElement("span");
+      txt.className = "txt";
+      txt.textContent = m.text;
+      li.appendChild(txt);
+
+      li.appendChild(delButton(m.text + " 기록 삭제", function () {
+        state.meals = state.meals.filter(function (x) { return x.id !== m.id; });
+        save(); render();
+      }));
+
+      mealList.appendChild(li);
+    });
+  }
+
+  /* ---------- 핵심기능 2 : 수면 ---------- */
+  var bedEl = document.getElementById("sleepBed");
+  var wakeEl = document.getElementById("sleepWake");
+
+  function toMin(v) {
+    if (!v || v.indexOf(":") < 0) return null;
+    var p = v.split(":");
+    var h = parseInt(p[0], 10), m = parseInt(p[1], 10);
+    if (isNaN(h) || isNaN(m)) return null;
+    return h * 60 + m;
+  }
+  // 취침 → 기상 사이의 분. 자정을 넘기면 24시간을 더해 계산한다.
+  function sleepMinutes() {
+    var b = toMin(state.sleep.bed), w = toMin(state.sleep.wake);
+    if (b === null || w === null) return 0;
+    var d = w - b;
+    if (d <= 0) d += 1440;
+    return d;
+  }
+
+  function onSleepChange() {
+    state.sleep.bed = bedEl.value;
+    state.sleep.wake = wakeEl.value;
+    save(); render();
+  }
+  bedEl.addEventListener("change", onSleepChange);
+  wakeEl.addEventListener("change", onSleepChange);
+  bedEl.addEventListener("input", onSleepChange);
+  wakeEl.addEventListener("input", onSleepChange);
+
+  function renderSleep() {
+    if (bedEl.value !== state.sleep.bed) bedEl.value = state.sleep.bed;
+    if (wakeEl.value !== state.sleep.wake) wakeEl.value = state.sleep.wake;
+
+    var mins = sleepMinutes();
+    document.getElementById("sleepText").textContent =
+      mins ? Math.floor(mins / 60) + "시간 " + (mins % 60) + "분" : "—";
+    document.getElementById("sleepBadge").textContent =
+      mins >= GOAL.sleep * 60 ? "목표 달성" : "";
+  }
+
+  /* ---------- 핵심기능 3 : 운동 ---------- */
+  var exList = document.getElementById("exList");
+
+  document.getElementById("exForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var nameEl = document.getElementById("exName");
+    var minEl = document.getElementById("exMin");
+    var name = nameEl.value.trim();
+    var min = parseInt(minEl.value.replace(/[^0-9]/g, ""), 10);
+    if (!name || !min || min <= 0) { minEl.select(); return; }
+    state.workouts.push({ id: uid(), name: name, min: min, at: new Date().toISOString() });
+    nameEl.value = ""; minEl.value = ""; nameEl.focus();
+    save(); render();
+  });
+
+  function exTotalMin() {
+    return state.workouts.reduce(function (a, w) { return a + w.min; }, 0);
+  }
+
+  function renderWorkouts() {
+    exList.textContent = "";
+    document.getElementById("exCount").textContent =
+      state.workouts.length ? state.workouts.length + "개" : "";
+
+    if (!state.workouts.length) {
+      emptyRow(exList, "오늘 운동 기록이 없습니다. 10분도 기록해 두세요.");
+    } else {
+      state.workouts.forEach(function (w) {
+        var li = document.createElement("li");
+        li.className = "row ex";
+
+        var txt = document.createElement("span");
+        txt.className = "txt";
+        txt.textContent = w.name;
+        li.appendChild(txt);
+
+        var num = document.createElement("span");
+        num.className = "num";
+        num.textContent = w.min + "분";
+        li.appendChild(num);
+
+        li.appendChild(delButton(w.name + " 기록 삭제", function () {
+          state.workouts = state.workouts.filter(function (x) { return x.id !== w.id; });
+          save(); render();
+        }));
+
+        exList.appendChild(li);
+      });
+    }
+    document.getElementById("exTotal").textContent = exTotalMin() + "분";
+  }
+
+  /* ---------- 핵심기능 4 : 물 ---------- */
+  var cupsEl = document.getElementById("waterCups");
+
+  function setWater(n) {
+    state.water = Math.max(0, Math.min(20, n));
+    save(); render();
+  }
+  document.getElementById("waterPlus").addEventListener("click", function () { setWater(state.water + 1); });
+  document.getElementById("waterMinus").addEventListener("click", function () { setWater(state.water - 1); });
+
+  function renderWater() {
+    cupsEl.textContent = "";
+    var shown = Math.max(GOAL.water, state.water);
+    for (var i = 1; i <= shown; i++) {
+      (function (n) {
+        var b = document.createElement("button");
+        b.className = "cup" + (n <= state.water ? " on" : "");
+        b.type = "button";
+        b.setAttribute("aria-label", n + "잔째");
+        b.addEventListener("click", function () { setWater(state.water === n ? n - 1 : n); });
+        cupsEl.appendChild(b);
+      }(i));
+    }
+    var wt = document.getElementById("waterText");
+    wt.textContent = "";
+    var cur = document.createTextNode(state.water + " ");
+    var of = document.createElement("span");
+    of.className = "of";
+    of.textContent = "/ " + GOAL.water + "잔";
+    wt.appendChild(cur);
+    wt.appendChild(of);
+    document.getElementById("waterBadge").textContent = state.water >= GOAL.water ? "목표 달성" : "";
+  }
+
+  /* ---------- 메모 ---------- */
+  var memoList = document.getElementById("memoList");
+  var memoText = document.getElementById("memoText");
+
+  function saveMemo(e) {
+    if (e) e.preventDefault();
+    var text = memoText.value.trim();
+    if (!text) return;
+    state.memos.unshift({ id: uid(), text: text, at: new Date().toISOString() });
+    memoText.value = "";
+    save(); render();
+    memoText.focus();
+  }
+  document.getElementById("memoForm").addEventListener("submit", saveMemo);
+  memoText.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") saveMemo(e);
+  });
+
+  function renderMemos() {
+    memoList.textContent = "";
+    document.getElementById("memoCount").textContent =
+      state.memos.length ? state.memos.length + "건" : "";
+
+    if (!state.memos.length) {
+      var em = document.createElement("div");
+      em.className = "empty";
+      em.textContent = "아직 메모가 없습니다.";
+      memoList.appendChild(em);
+      return;
+    }
+
+    state.memos.forEach(function (m) {
+      var box = document.createElement("div");
+      box.className = "memo";
+
+      var mt = document.createElement("div");
+      mt.className = "mt";
+      var when = new Date(m.at);
+      var stamp = document.createElement("span");
+      stamp.textContent =
+        (when.getMonth() + 1) + "월 " + when.getDate() + "일 " +
+        String(when.getHours()).padStart(2, "0") + ":" +
+        String(when.getMinutes()).padStart(2, "0");
+      mt.appendChild(stamp);
+      mt.appendChild(delButton("메모 삭제", function () {
+        state.memos = state.memos.filter(function (x) { return x.id !== m.id; });
+        save(); render();
+      }));
+      box.appendChild(mt);
+
+      var mb = document.createElement("div");
+      mb.className = "mb";
+      mb.textContent = m.text;
+      box.appendChild(mb);
+
+      memoList.appendChild(box);
+    });
+  }
+
+  /* ---------- 체크리스트 ---------- */
+  var chkList = document.getElementById("chkList");
+
+  document.getElementById("chkForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var el = document.getElementById("chkText");
+    var text = el.value.trim();
+    if (!text) return;
+    state.checks.push({ id: uid(), text: text, done: false });
+    el.value = ""; el.focus();
+    save(); render();
+  });
+
+  function renderChecks() {
+    chkList.textContent = "";
+    var total = state.checks.length;
+    var done = state.checks.filter(function (c) { return c.done; }).length;
+    var pct = total ? Math.round(done / total * 100) : 0;
+
+    var fill = document.getElementById("fill");
+    fill.style.width = pct + "%";
+    fill.className = "fill" + (total && done === total ? " all" : "");
+    document.getElementById("ptext").textContent = done + " / " + total;
+    document.getElementById("chkCount").textContent = total && done === total ? "완료" : "";
+
+    if (!total) {
+      emptyRow(chkList, "체크 항목이 없습니다.");
+      return;
+    }
+
+    state.checks.forEach(function (c) {
+      var li = document.createElement("li");
+      li.className = "chk" + (c.done ? " done" : "");
+
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = c.done;
+      box.id = "chk-" + c.id;
+      box.addEventListener("change", function () {
+        c.done = box.checked;
+        save(); render();
+      });
+
+      var lb = document.createElement("label");
+      lb.htmlFor = box.id;
+      lb.textContent = c.text;
+
+      li.appendChild(box);
+      li.appendChild(lb);
+      li.appendChild(delButton(c.text + " 삭제", function () {
+        state.checks = state.checks.filter(function (x) { return x.id !== c.id; });
+        save(); render();
+      }));
+      chkList.appendChild(li);
+    });
+  }
+
+  /* ---------- 하단 : 오늘의 점수 ---------- */
+  // 각 항목을 목표 대비 비율(최대 1)로 환산해 2.5점씩 배분한다.
+  function scoreParts() {
+    var slotsDone = {};
+    state.meals.forEach(function (m) { if (m.slot !== "간식") slotsDone[m.slot] = true; });
+    var mealDone = Object.keys(slotsDone).length;
+    var sleepH = sleepMinutes() / 60;
+    var exMin = exTotalMin();
+
+    return [
+      { cls: "s-sleep", label: "수면", got: sleepH, goal: GOAL.sleep,
+        text: (Math.round(sleepH * 10) / 10) + " / " + GOAL.sleep + "시간" },
+      { cls: "s-ex", label: "운동", got: exMin, goal: GOAL.ex,
+        text: exMin + " / " + GOAL.ex + "분" },
+      { cls: "s-meal", label: "식단", got: mealDone, goal: GOAL.meal,
+        text: mealDone + " / " + GOAL.meal + "끼" },
+      { cls: "s-water", label: "물", got: state.water, goal: GOAL.water,
+        text: state.water + " / " + GOAL.water + "잔" }
+    ].map(function (p) {
+      p.ratio = p.goal ? Math.min(1, p.got / p.goal) : 0;
+      p.pt = p.ratio * 2.5;
+      return p;
+    });
+  }
+
+  function renderScore() {
+    var parts = scoreParts();
+    var total = parts.reduce(function (a, p) { return a + p.pt; }, 0);
+    var shown = (Math.round(total * 10) / 10).toFixed(1);
+
+    document.getElementById("scoreTotal").textContent = shown;
+    document.getElementById("heroScore").textContent = "오늘 " + shown + "점";
+    document.getElementById("scoreWord").textContent =
+      total >= 8 ? "훌륭해요. 오늘 루틴 그대로 가면 됩니다."
+      : total >= 5 ? "나쁘지 않아요. 부족한 항목 하나만 채워 보세요."
+      : "아직 여유가 있어요. 물 한 잔부터 시작해 볼까요?";
+
+    var wrap = document.getElementById("scoreBars");
+    wrap.textContent = "";
+    parts.forEach(function (p) {
+      var row = document.createElement("div");
+      row.className = "sbar " + p.cls;
+
+      var lab = document.createElement("span");
+      lab.className = "slab";
+      lab.textContent = p.label;
+
+      var track = document.createElement("div");
+      track.className = "strack";
+      var fill = document.createElement("div");
+      fill.className = "sfill";
+      fill.style.width = Math.round(p.ratio * 100) + "%";
+      track.appendChild(fill);
+
+      var val = document.createElement("span");
+      val.className = "sval";
+      val.textContent = p.text;
+
+      var pt = document.createElement("span");
+      pt.className = "spt";
+      pt.textContent = (Math.round(p.pt * 10) / 10).toFixed(1);
+
+      row.appendChild(lab);
+      row.appendChild(track);
+      row.appendChild(val);
+      row.appendChild(pt);
+      wrap.appendChild(row);
+    });
+  }
+
+  /* ---------- 테마 ---------- */
+  var themeBtn = document.getElementById("themeBtn");
+  function isDark() {
+    var s = document.documentElement.getAttribute("data-theme");
+    if (s) return s === "dark";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  themeBtn.addEventListener("click", function () {
+    document.documentElement.setAttribute("data-theme", isDark() ? "light" : "dark");
+    themeBtn.textContent = isDark() ? "라이트 모드" : "다크 모드";
+  });
+
+  /* ---------- 렌더 ---------- */
+  function render() {
+    paintSeg();
+    renderMeals();
+    renderSleep();
+    renderWorkouts();
+    renderWater();
+    renderMemos();
+    renderChecks();
+    renderScore();
+    document.getElementById("footer").textContent =
+      "기록은 이 브라우저에만 저장됩니다. 자정이 지나면 오늘 기록은 초기화되고 체크 항목은 그대로 남습니다.";
+  }
+
+  paintHeader();
+  themeBtn.textContent = isDark() ? "라이트 모드" : "다크 모드";
+  render();
+  document.getElementById("mealText").focus();
+}());
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+# ---------- 비밀정보 (반드시 제외) ----------
+.env
+.env.*
+*.env
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+secrets.*
+credentials.*
+*credential*
+*secret*
+*token*
+
+# ---------- 업무 문서 · 사내 자료 (저장소에 올리지 않음) ----------
+*.docx
+*.pptx
+*.xlsx
+*.xls
+국내_개인투자자_동향_*
+지점별_실적_*
+상반기_거래대금_*
+
+# 업무용 자동화 스크립트
+_audit.ps1
+_build_ppt.ps1
+_clean.ps1
+_extract.ps1
+
+# ---------- 로컬 전용 ----------
+.claude/settings.local.json
+hello.html
+
+# ---------- OS / 편집기 ----------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# ---------- 임시 산출물 ----------
+test.html
+*.tmp
+*.log
