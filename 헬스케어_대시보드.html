@@ -643,31 +643,9 @@
 
   </div>
 
-  <!-- 하단 중앙 : 메모 + 체크리스트 합본 -->
+  <!-- 하단 중앙 : 체크리스트 + 메모 합본 -->
   <section class="card combo">
     <div class="combobody">
-
-      <div class="pane">
-        <div class="cardhead">
-          <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-            <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-6"/>
-            <path d="M18.4 2.6a2 2 0 0 1 2.8 2.8L14 12.6l-3.5.7.7-3.5z"/>
-            <path d="M8 8h4M8 12h3"/>
-          </svg>
-          <h2>메모</h2>
-          <span class="count" id="memoCount"></span>
-        </div>
-        <p class="hint">컨디션, 식욕, 몸 상태 — Ctrl(⌘) + Enter 로 저장</p>
-        <form class="memoform" id="memoForm">
-          <textarea id="memoText" placeholder="예) 어제 야식 때문인지 아침에 붓기. 오늘은 저녁 8시 이후 금식."></textarea>
-          <div class="memorow">
-            <span class="tip">Ctrl(⌘) + Enter 로 저장</span>
-            <button class="addbtn" type="submit">메모 저장</button>
-          </div>
-        </form>
-        <div id="memoList"></div>
-      </div>
 
       <div class="pane">
         <div class="cardhead">
@@ -689,6 +667,28 @@
           <button class="addbtn" type="submit">추가</button>
         </form>
         <ul id="chkList"></ul>
+      </div>
+
+      <div class="pane">
+        <div class="cardhead">
+          <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-6"/>
+            <path d="M18.4 2.6a2 2 0 0 1 2.8 2.8L14 12.6l-3.5.7.7-3.5z"/>
+            <path d="M8 8h4M8 12h3"/>
+          </svg>
+          <h2>메모</h2>
+          <span class="count" id="memoCount"></span>
+        </div>
+        <p class="hint">컨디션, 식욕, 몸 상태 — Ctrl(⌘) + Enter 로 저장</p>
+        <form class="memoform" id="memoForm">
+          <textarea id="memoText" placeholder="예) 어제 야식 때문인지 아침에 붓기. 오늘은 저녁 8시 이후 금식."></textarea>
+          <div class="memorow">
+            <span class="tip">Ctrl(⌘) + Enter 로 저장</span>
+            <button class="addbtn" type="submit">메모 저장</button>
+          </div>
+        </form>
+        <div id="memoList"></div>
       </div>
 
     </div>
