@@ -2,10 +2,13 @@
 
 개인용 단일 사용자 웹 대시보드 두 개를 담는 저장소. **두 프로젝트는 서로 독립이다.**
 
-| 프로젝트 | 산출물 | 요구사항 | 태스크 | 검증 스크립트 | 저장 키 |
+| 프로젝트 | 산출물 | 요구사항 | 태스크 | 검증 스크립트 | 저장 |
 |---|---|---|---|---|---|
-| 관심종목 모닝 대시보드 | `관심종목_대시보드.html` | @PRD.md | @TASKS.md | `_test_inject.js` | `morning-dashboard-v1` |
-| 오늘의 건강 대시보드 | `헬스케어_대시보드.html` | @PRD_헬스케어.md | @TASKS_헬스케어.md | `_health_test_inject.js` | `health-dashboard-v1` |
+| 관심종목 모닝 대시보드 | `관심종목_대시보드.html` | @PRD.md | @TASKS.md | `_test_inject.js` | localStorage `morning-dashboard-v1` |
+| 오늘의 건강 대시보드 | `헬스케어_대시보드.html` | @PRD_헬스케어.md | @TASKS_헬스케어.md | `_health_test_inject.js` | Supabase (로그인) / localStorage `health-dashboard-local-v1` (로컬 모드) |
+
+**헬스케어는 배포 대상이다.** Vercel → `vercel.json` 이 `/` 를 헬스케어 대시보드로 보낸다.
+배포에 영향을 주는 변경(파일명, 라우팅, 키)은 `vercel.json` 과 함께 확인한다.
 
 작업을 시작하기 전에 **어느 프로젝트인지 먼저 확정하고**, 해당 PRD를 확인한다.
 요청이 PRD와 충돌하면 임의로 판단하지 말고 먼저 알린다.
@@ -24,8 +27,12 @@
   - CSS 색상은 `:root` 의 CSS 변수로 선언하고, 색상값을 규칙 안에서 직접 반복하지 않는다.
   - JS는 단일 IIFE 안에 두고 전역 변수를 만들지 않는다.
   - 예외: 검증 스크립트(`_test_inject.js`, `_health_test_inject.js`)는 산출물이 아니므로 별도 파일로 둔다. 원본 HTML에는 절대 포함하지 않는다.
-- **데이터는 localStorage에 저장한다.** 서버, DB, 외부 API 호출 없음.
-  - 저장 키는 프로젝트당 위 표의 키 하나로 유지한다. 스키마가 바뀌면 키 버전을 올리고 마이그레이션을 넣는다.
+- **저장 위치는 프로젝트마다 다르다.** 위 표의 "저장" 열을 따른다.
+  - 관심종목: localStorage 전용. 저장 키 하나로 유지하고, 스키마가 바뀌면 키 버전을 올리고 마이그레이션을 넣는다.
+  - 헬스케어: Supabase(계정별) + 로그인 없이 쓸 때는 localStorage. 배포 대상이라 사용자 구분이 필요하다.
+    - Supabase 접근은 **라이브러리 없이 `fetch`로 PostgREST/Auth REST API를 직접 호출한다.** CDN 금지 규칙은 그대로다.
+    - 테이블을 추가·변경하면 **RLS 정책을 반드시 함께 넣고**, `get_advisors`로 확인한다.
+    - 코드에 넣어도 되는 키는 **publishable 키뿐이다.** service_role 키는 절대 넣지 않는다.
 - 사용자 입력은 `textContent` 로 삽입한다. `innerHTML` 문자열 조립 금지.
 - 라이트 / 다크 모드를 함께 유지한다. 한쪽만 확인하고 끝내지 않는다.
 

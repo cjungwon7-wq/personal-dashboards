@@ -22,9 +22,82 @@
 | 9 | Starbucks 디자인 적용 | ⛔ 폐기 | 태스크 10으로 대체 |
 | 10 | Airbnb 디자인 적용 · 이모지 · 일러스트 | ✅ 완료 | 22/22 재통과 + 라이트/다크 스크린샷 |
 | 11 | 레이아웃 재구성 · 운동 종류 · 점수 표정 | ✅ 완료 | 32/32 + 마이그레이션 6/6 |
+| 12 | 배포용 Supabase 저장 전환 (로그인 · 날짜별 기록) | ✅ 완료 | 42/42 통과 |
+| 13 | Vercel 404 수정 (`vercel.json` 라우팅) | ⚠️ 배포 확인 필요 | 로컬 검증 불가 |
 
-**전체 자동 검증: 32 / 32 통과** (Edge headless, 2026-08-12)
-**v1 → v2 마이그레이션 검증: 6 / 6 통과**
+**전체 자동 검증: 42 / 42 통과** (Edge headless, 2026-08-12)
+
+---
+
+## 태스크 12 — 배포용 Supabase 저장 전환 ✅
+
+**요청**: 배포를 전제로 한 테이블을 만들고 localStorage 저장을 Supabase로 교체.
+
+**결정 사항** (사용자 확인)
+
+| 항목 | 선택 |
+|---|---|
+| 사용자 구분 | Supabase Auth 이메일 로그인 + 전 테이블 `user_id` RLS |
+| 지난 날 기록 | `log_date` 기준으로 쌓아 보존 |
+
+**스키마** — PRD_헬스케어 6항 참조. 7개 테이블, 전부 RLS.
+
+**설계에서 챙긴 것**
+
+1. **완료 표시를 `checklist_marks(item_id, log_date)` 로 분리했다.**
+   그 날짜 행이 없으면 체크가 저절로 풀리므로 자정 초기화 로직 자체가 없어졌다.
+2. **쓰기는 낙관적 + 직렬 큐.** 화면을 먼저 갱신하고 요청은 한 줄로 세워 보낸다.
+   기록 직후 삭제처럼 순서가 뒤집히면 안 되는 조합이 있어서 병렬로 보내지 않는다.
+3. **수면·물은 400ms 디바운스.** `input` 이벤트가 타이핑마다 터지므로 모아서 한 번 보낸다.
+   둘 다 `daily_logs` 한 행이라 upsert 하나로 끝난다.
+4. **401이면 토큰을 강제 갱신하고 1회 재시도한다.** 로컬 시계가 어긋나도 화면 오류로 만들지 않는다.
+5. 행 `id` 는 클라이언트에서 uuid로 만든다. 서버 응답을 기다리지 않고 화면을 먼저 그리기 위해서다.
+
+| 검증 항목 | 결과 |
+|---|---|
+| 로그인 전 앱 가려짐 · 잘못된 비밀번호 거부 | PASS |
+| 로그인 성공 시 앱 진입 · 토큰 저장 | PASS |
+| 가입 트리거가 기본 체크 4종 생성 | PASS |
+| 식단 · 수면 · 운동 · 수분 · 메모 · 체크 (기존 32항목 상당) | PASS |
+| 오늘의 점수 8.8 · 표정 · 상단 동기화 | PASS |
+| Supabase 각 테이블 저장 내용 대조 | PASS |
+| 등록 직후 삭제분이 서버에 남지 않음 (요청 순서 보장) | PASS |
+| 기록이 날짜별로 분리됨 (어제 조회 시 0건) | PASS |
+
+**작업 중 잡은 것**
+
+- 첫 실행에서 6개 병렬 GET 중 `profiles` 하나만 401이 났다. 하나라도 실패하면 전체 로드가
+  실패해 화면이 비어 보였다 → 401 재시도를 넣었다.
+- 검증 스크립트가 디바운스보다 먼저 `daily_logs` 를 읽어 실패로 잡혔다. 코드가 아니라
+  테스트의 경합이었다 (서버 행은 정상). 대기 조건에 `daily_logs` 를 추가했다.
+- 검증 스크립트에 테스트 계정 비밀번호가 박혀 있었다. 이 파일은 저장소에 있고 배포되면
+  공개되므로, 환경변수로 주입받도록 바꾸고 `.vercelignore` 로 배포에서 제외했다.
+
+---
+
+## 태스크 13 — Vercel 404 수정 ⚠️
+
+**증상**: 배포 후 루트 접속 시 `404: NOT_FOUND`.
+
+**원인**: 저장소 루트에 `index.html` 이 없다. Vercel은 URL 경로를 파일로 매핑하므로
+`/` 는 `index.html` 을 찾고, 없으면 404다. HTML 파일명이 한글이라 그 경로로만 열렸다.
+
+> 처음 의심한 두 가지는 원인이 아니었다.
+> HTML 파일 개수는 404와 무관하고, `main` 은 `origin/main` 과 동기화돼 있었다.
+> 다만 Supabase 전환분이 커밋되지 않아 배포본이 옛 버전이었던 것은 별개의 실제 문제였다.
+
+**조치**: `vercel.json` 추가.
+
+| 경로 | 대상 |
+|---|---|
+| `/` | `헬스케어_대시보드.html` |
+| `/health` | `헬스케어_대시보드.html` |
+| `/stocks` | `관심종목_대시보드.html` |
+
+보안 헤더(`nosniff`, `Referrer-Policy`, `X-Frame-Options`)도 함께 넣었다.
+
+**미검증**: 로컬에서 Vercel 라우팅을 확인할 방법이 없다. 배포 후 `/` 접속으로 확인해야 한다.
+한글 파일명 rewrite가 문제를 일으키면 파일명을 ASCII로 바꾸는 것이 확실한 해법이다.
 
 ---
 
@@ -255,21 +328,45 @@ v1 스키마(운동에 `type` 없음) 데이터를 심고 페이지를 다시 �
 
 ## 검증 실행 방법
 
+> **검증은 실제 Supabase 계정을 건드린다.** 아래 테스트 계정 전용이며, 실사용 계정으로 돌리지 말 것.
+> 검증 스크립트에는 비밀번호를 넣지 않는다 — 실행 시 환경변수로 주입한다.
+
+### 0) 테스트 계정 초기화 (매 실행 전 필수)
+
+이전 실행의 데이터가 남아 있으면 개수 검증이 전부 어긋난다. 먼저 SQL을 돌린다.
+
+```sql
+with u as (select id from auth.users where email = 'health.dash.test@gmail.com')
+, d1 as (delete from public.meals           where user_id in (select id from u))
+, d2 as (delete from public.workouts        where user_id in (select id from u))
+, d3 as (delete from public.memos           where user_id in (select id from u))
+, d4 as (delete from public.daily_logs      where user_id in (select id from u))
+, d5 as (delete from public.checklist_marks where user_id in (select id from u))
+, d6 as (delete from public.checklist_items where user_id in (select id from u))
+insert into public.checklist_items (user_id, text, sort_order)
+select u.id, t.text, t.ord
+from u, (values ('일어나서 물 한 잔',1),('계단 이용하기',2),
+                ('야식 먹지 않기',3),('12시 전에 눕기',4)) as t(text, ord);
+```
+
 ### 1) 눈으로 확인 (수동)
 
 ```powershell
+$env:HEALTH_TEST_EMAIL = "health.dash.test@gmail.com"
+$env:HEALTH_TEST_PW    = "<비밀번호>"
 $src = "헬스케어_대시보드.html"; $inj = "_health_test_inject.js"
 $tmp = "$env:TEMP\healthtest"; New-Item -ItemType Directory -Force $tmp | Out-Null
 $html = [IO.File]::ReadAllText($src, [Text.Encoding]::UTF8)
 $js   = [IO.File]::ReadAllText($inj, [Text.Encoding]::UTF8)
+$creds = "window.__TEST_CREDS={email:'$env:HEALTH_TEST_EMAIL',pw:'$env:HEALTH_TEST_PW'};"
 [IO.File]::WriteAllText("$tmp\test.html",
-  $html.Replace('</body>', "<script>$js</script></body>"),
+  $html.Replace('</body>', "<script>$creds</script><script>$js</script></body>"),
   (New-Object Text.UTF8Encoding($false)))
 # 생성된 test.html을 브라우저로 열면 하단에 통과/실패 결과가 표시됨
 ```
 
-> 같은 브라우저 프로필로 다시 실행하면 이전 실행의 localStorage가 남아 결과가 오염된다.
-> 재실행 전에는 개발자도구에서 `localStorage.clear()` 를 먼저 실행할 것.
+> 재실행 전에는 브라우저 프로필을 지우거나 `localStorage.clear()` 를 먼저 실행할 것.
+> 세션 토큰이 남아 있으면 로그인 게이트 검증이 건너뛰어진다.
 
 ### 2) 헤드리스 자동 실행 (결과를 텍스트로 회수)
 
@@ -282,7 +379,7 @@ $url = ([Uri]"$tmp\test.html").AbsoluteUri
 Start-Process -FilePath $edge -Wait -NoNewWindow `
   -ArgumentList @("--headless=new","--disable-gpu","--no-first-run",
                   "--allow-file-access-from-files","--user-data-dir=$prof",
-                  "--virtual-time-budget=5000","--dump-dom",$url) `
+                  "--virtual-time-budget=90000","--dump-dom",$url) `
   -RedirectStandardOutput "$tmp\dom.txt" -RedirectStandardError "$tmp\err.txt" | Out-Null
 $dom = [IO.File]::ReadAllText("$tmp\dom.txt", [Text.Encoding]::UTF8)
 $m = [regex]::Matches($dom, '자동 검증 결과 — [0-9][\s\S]*')
@@ -290,7 +387,7 @@ $m = [regex]::Matches($dom, '자동 검증 결과 — [0-9][\s\S]*')
 ```
 
 기능을 수정한 뒤에는 `_health_test_inject.js`에 검증 항목을 추가하고 위 절차를 다시 실행할 것.
-현재 항목 수는 **32개**다.
+현재 항목 수는 **42개**다.
 
 ### 3) v1 → v2 마이그레이션 검증 (별도)
 
