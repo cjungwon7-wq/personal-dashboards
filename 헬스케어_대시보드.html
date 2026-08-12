@@ -34,6 +34,7 @@
     --on-band-soft: rgba(34,34,34,0.06);
     --on-band-line: rgba(34,34,34,0.26);
     --band-decor: #b6c96e;
+    --spark: #a4ba52;          /* 밝은 밴드 위에서는 진한 쪽이 보인다 */
     --lift: rgba(0,0,0,0.02) 0 0 0 1px, rgba(0,0,0,0.04) 0 2px 6px 0, rgba(0,0,0,0.1) 0 4px 8px 0;
     --r-sm: 8px;
     --r-md: 14px;
@@ -65,6 +66,7 @@
       --on-band-soft: rgba(237,243,198,0.10);
       --on-band-line: rgba(237,243,198,0.30);
       --band-decor: #5c6b28;
+      --spark: #eaf3c2;        /* 어두운 밴드 위에서는 밝게 빛난다 */
       --lift: rgba(255,255,255,0.04) 0 0 0 1px, rgba(0,0,0,0.4) 0 2px 6px 0, rgba(0,0,0,0.5) 0 4px 8px 0;
     }
   }
@@ -91,6 +93,7 @@
     --on-band-soft: rgba(237,243,198,0.10);
     --on-band-line: rgba(237,243,198,0.30);
     --band-decor: #5c6b28;
+    --spark: #eaf3c2;
     --lift: rgba(255,255,255,0.04) 0 0 0 1px, rgba(0,0,0,0.4) 0 2px 6px 0, rgba(0,0,0,0.5) 0 4px 8px 0;
   }
 
@@ -124,6 +127,33 @@
   .hero .decor {
     position: absolute; inset: 0; width: 100%; height: 100%;
     pointer-events: none; color: var(--band-decor);
+  }
+
+  /* ---------- 별빛 : 밴드 위에 천천히 내려앉는 반짝임 ---------- */
+  .sparks { color: var(--spark); }
+  .sp {
+    transform-box: fill-box; transform-origin: center;
+    opacity: 0;
+    animation: starfall 4.6s ease-in-out infinite;
+  }
+  @keyframes starfall {
+    0%   { opacity: 0;    transform: translateY(-10px) scale(.35); }
+    30%  { opacity: .95;  transform: translateY(0)     scale(1); }
+    62%  { opacity: .45;  transform: translateY(8px)   scale(.8); }
+    100% { opacity: 0;    transform: translateY(20px)  scale(.35); }
+  }
+  /* 하나씩 어긋나게 떨어져야 비 오듯 보인다 */
+  .sp:nth-child(7n+1) { animation-duration: 4.2s; animation-delay: 0s; }
+  .sp:nth-child(7n+2) { animation-duration: 5.4s; animation-delay: .7s; }
+  .sp:nth-child(7n+3) { animation-duration: 3.6s; animation-delay: 1.5s; }
+  .sp:nth-child(7n+4) { animation-duration: 6.1s; animation-delay: 2.3s; }
+  .sp:nth-child(7n+5) { animation-duration: 4.8s; animation-delay: .3s; }
+  .sp:nth-child(7n+6) { animation-duration: 5.7s; animation-delay: 3.1s; }
+  .sp:nth-child(7n+7) { animation-duration: 3.9s; animation-delay: 1.9s; }
+
+  /* 움직임을 줄이도록 설정한 경우엔 멈춰 두고 은은하게만 남긴다 */
+  @media (prefers-reduced-motion: reduce) {
+    .sp { animation: none; opacity: .5; }
   }
   .hero .inner { position: relative; }
   .herobar { display: flex; align-items: center; justify-content: space-between; height: 72px; }
@@ -350,8 +380,12 @@
   .memo .mb { font-size: 15px; color: var(--body); white-space: pre-wrap; word-break: break-word; }
 
   /* ---------- 4. 하단 점수 : 상단과 동일한 밴드 ---------- */
-  .scoreband { background: var(--band); color: var(--on-band); }
-  .scoreband .inner { padding-top: 44px; padding-bottom: 48px; }
+  .scoreband { position: relative; overflow: hidden; background: var(--band); color: var(--on-band); }
+  .scoreband .decor {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; color: var(--band-decor);
+  }
+  .scoreband .inner { position: relative; padding-top: 44px; padding-bottom: 48px; }
   .scorebody {
     display: grid; grid-template-columns: 300px 1fr; gap: 52px; align-items: center;
     max-width: 1000px; margin: 0 auto;
@@ -406,9 +440,23 @@
     <circle cx="1240" cy="52" r="88" fill="currentColor" opacity=".26"/>
     <circle cx="176" cy="292" r="132" fill="currentColor" opacity=".20"/>
     <path d="M0 258 Q220 208 440 250 T880 244 T1440 268 L1440 320 L0 320 Z" fill="currentColor" opacity=".20"/>
-    <g fill="currentColor" opacity=".62">
-      <circle cx="1090" cy="118" r="3"/><circle cx="1156" cy="188" r="2.4"/><circle cx="330" cy="96" r="2.6"/>
-      <circle cx="252" cy="176" r="2"/><circle cx="1330" cy="212" r="2.4"/>
+    <g class="sparks" fill="currentColor">
+      <g class="sp"><path d="M330 88 Q331 95 338 96 Q331 97 330 104 Q329 97 322 96 Q329 95 330 88 Z"/></g>
+      <g class="sp"><circle cx="1090" cy="118" r="2.6"/></g>
+      <g class="sp"><path d="M700 52 Q701 59 708 60 Q701 61 700 68 Q699 61 692 60 Q699 59 700 52 Z"/></g>
+      <g class="sp"><circle cx="1156" cy="188" r="2"/></g>
+      <g class="sp"><circle cx="252" cy="176" r="1.8"/></g>
+      <g class="sp"><path d="M1330 206 Q1331 211 1336 212 Q1331 213 1330 218 Q1329 213 1324 212 Q1329 211 1330 206 Z"/></g>
+      <g class="sp"><circle cx="470" cy="140" r="2.2"/></g>
+      <g class="sp"><circle cx="880" cy="96" r="1.7"/></g>
+      <g class="sp"><path d="M1010 232 Q1011 237 1016 238 Q1011 239 1010 244 Q1009 239 1004 238 Q1009 237 1010 232 Z"/></g>
+      <g class="sp"><circle cx="160" cy="112" r="2"/></g>
+      <g class="sp"><circle cx="600" cy="204" r="1.6"/></g>
+      <g class="sp"><path d="M1220 74 Q1221 79 1226 80 Q1221 81 1220 86 Q1219 81 1214 80 Q1219 79 1220 74 Z"/></g>
+      <g class="sp"><circle cx="790" cy="164" r="2.3"/></g>
+      <g class="sp"><circle cx="1400" cy="140" r="1.8"/></g>
+      <g class="sp"><circle cx="60" cy="196" r="1.6"/></g>
+      <g class="sp"><path d="M940 128 Q941 133 946 134 Q941 135 940 140 Q939 135 934 134 Q939 133 940 128 Z"/></g>
     </g>
   </svg>
   <div class="inner">
@@ -714,6 +762,22 @@
 
 <!-- 4. 하단 점수 : 상단과 동일한 밴드 -->
 <section class="scoreband">
+  <svg class="decor" viewBox="0 0 1440 260" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+    <circle cx="180" cy="30" r="120" fill="currentColor" opacity=".18"/>
+    <circle cx="1290" cy="228" r="140" fill="currentColor" opacity=".16"/>
+    <g class="sparks" fill="currentColor">
+      <g class="sp"><path d="M300 44 Q301 51 308 52 Q301 53 300 60 Q299 53 292 52 Q299 51 300 44 Z"/></g>
+      <g class="sp"><circle cx="1080" cy="60" r="2.4"/></g>
+      <g class="sp"><circle cx="520" cy="196" r="1.8"/></g>
+      <g class="sp"><path d="M1180 150 Q1181 155 1186 156 Q1181 157 1180 162 Q1179 157 1174 156 Q1179 155 1180 150 Z"/></g>
+      <g class="sp"><circle cx="760" cy="42" r="2"/></g>
+      <g class="sp"><circle cx="960" cy="212" r="1.7"/></g>
+      <g class="sp"><path d="M640 118 Q641 123 646 124 Q641 125 640 130 Q639 125 634 124 Q639 123 640 118 Z"/></g>
+      <g class="sp"><circle cx="1380" cy="96" r="2.1"/></g>
+      <g class="sp"><circle cx="120" cy="170" r="1.9"/></g>
+      <g class="sp"><path d="M880 176 Q881 181 886 182 Q881 183 880 188 Q879 183 874 182 Q879 181 880 176 Z"/></g>
+    </g>
+  </svg>
   <div class="inner">
     <div class="scorebody">
       <div class="scorehero">
