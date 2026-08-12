@@ -330,97 +330,9 @@
   :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   .hero :focus-visible, .scoreband :focus-visible { outline-color: var(--on-band); }
 
-  /* ---------- 로그인 ---------- */
-  /* 로그인 전에는 앱을 통째로 가린다. 남의 기록이 잠깐이라도 비치면 안 된다. */
-  body.locked > *:not(#authGate) { display: none; }
-  #authGate { display: none; }
-  body.locked #authGate,
-  body.booting #authGate { display: flex; }
-
-  #authGate {
-    position: fixed; inset: 0; z-index: 50;
-    align-items: center; justify-content: center; padding: 24px;
-    background: var(--band);
-  }
-  .authcard {
-    width: 100%; max-width: 380px; background: var(--canvas);
-    border-radius: var(--r-lg); padding: 32px 28px; box-shadow: var(--lift);
-  }
-  .authcard .brand { color: var(--rausch); font-size: 18px; margin-bottom: 20px; }
-  .authcard h2 { font-size: 20px; font-weight: 600; margin: 0 0 6px; color: var(--ink); }
-  .authcard p.sub { font-size: 14px; color: var(--muted); margin: 0 0 20px; }
-  .authcard label { display: block; font-size: 13px; font-weight: 500; color: var(--body); margin-bottom: 6px; }
-  .authcard input {
-    width: 100%; font: inherit; font-size: 16px; padding: 11px 13px; margin-bottom: 14px;
-    background: var(--canvas); color: var(--ink);
-    border: 1px solid var(--hairline); border-radius: var(--r-sm);
-  }
-  .authcard input:focus { outline: none; border: 2px solid var(--ink); padding: 10px 12px; }
-  .authcard .addbtn { width: 100%; padding: 12px; font-size: 16px; }
-  .authrow {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-top: 16px; font-size: 14px; color: var(--muted);
-  }
-  .linkbtn {
-    font: inherit; font-size: 14px; font-weight: 600; padding: 0; cursor: pointer;
-    background: none; border: none; color: var(--ink); text-decoration: underline;
-  }
-  .autherr {
-    font-size: 14px; color: var(--error); margin: 0 0 14px;
-    line-height: 1.45; white-space: pre-line;
-  }
-  .autherr:empty { display: none; }
-  /* 실패가 아니라 안내일 때 — 빨간 글씨로 보이면 실패한 줄 안다 */
-  .autherr.info { color: var(--body); background: var(--surface-soft);
-    border-radius: var(--r-sm); padding: 10px 12px; }
-  .authalt { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--hairline-soft); }
-  .altbtn {
-    width: 100%; font: inherit; font-size: 15px; font-weight: 500; cursor: pointer;
-    padding: 12px; border-radius: var(--r-sm);
-    background: var(--canvas); color: var(--ink); border: 1px solid var(--ink);
-    transition: background .15s ease;
-  }
-  .altbtn:hover { background: var(--surface-soft); }
-  .altnote { font-size: 13px; color: var(--muted); margin: 10px 0 0; line-height: 1.45; }
-  .authboot { color: var(--on-band-dim); font-size: 15px; }
 </style>
 </head>
-<body class="booting">
-
-<!-- 0. 로그인 — 세션이 확인될 때까지 앱을 가린다 -->
-<div id="authGate">
-  <div class="authcard" id="authCard" hidden>
-    <span class="brand">
-      <svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true" focusable="false">
-        <path d="M16 28c-1.9 0-3.4-1-4.6-3.2C8.6 19.6 5 13.4 5 10.2 5 6.7 7.6 4 11 4c2 0 3.8 1 5 2.7C17.2 5 19 4 21 4c3.4 0 6 2.7 6 6.2 0 3.2-3.6 9.4-6.4 14.6C19.4 27 17.9 28 16 28z"
-              fill="currentColor"/>
-      </svg>
-      오늘의 건강
-    </span>
-    <h2 id="authTitle">로그인</h2>
-    <p class="sub" id="authSub">기록은 계정에 저장되고 본인만 볼 수 있습니다.</p>
-
-    <form id="authForm">
-      <p class="autherr" id="authErr"></p>
-      <label for="authEmail">이메일</label>
-      <input type="email" id="authEmail" autocomplete="email" required>
-      <label for="authPw">비밀번호</label>
-      <input type="password" id="authPw" autocomplete="current-password" minlength="6" required>
-      <button class="addbtn" type="submit" id="authSubmit">로그인</button>
-    </form>
-
-    <div class="authrow">
-      <span id="authSwitchLabel">계정이 없으신가요?</span>
-      <button class="linkbtn" type="button" id="authSwitch">가입하기</button>
-    </div>
-
-    <div class="authalt">
-      <button class="altbtn" type="button" id="localBtn">로그인 없이 이 기기에서만 쓰기</button>
-      <p class="altnote">기록은 이 브라우저에만 저장됩니다. 나중에 로그인하면 그대로 계정으로 올라갑니다.</p>
-    </div>
-  </div>
-  <p class="authboot" id="authBoot">불러오는 중…</p>
-</div>
+<body>
 
 <!-- 운동 종류 아이콘 원본 (JS에서 복제해 사용) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -458,8 +370,7 @@
       </span>
       <span class="herotools">
         <button class="ghostbtn" id="themeBtn" type="button">다크 모드</button>
-        <button class="ghostbtn" id="logoutBtn" type="button">로그아웃</button>
-      </span>
+        </span>
     </div>
     <div class="herocopy">
       <h1><span class="emo" id="greetEmo">☀️</span><span id="greetText">오늘의 건강</span></h1>
@@ -755,22 +666,14 @@
 (function () {
   "use strict";
 
-  // 기록은 Supabase에 사용자별로 저장한다. 라이브러리 없이 fetch만 쓴다.
-  var SUPABASE_URL = "https://qplxvfwuobvnobqpivbm.supabase.co";
-  var SUPABASE_KEY = "sb_publishable_zuCioXoqOBTJM06bz9VC3w_qtfXJEjm";
-  var REST = SUPABASE_URL + "/rest/v1";
-  var AUTH = SUPABASE_URL + "/auth/v1";
-
-  var SESSION_KEY = "health-dashboard-session";   // 로그인 토큰
-  var LOCAL_KEY = "health-dashboard-v2";          // 로컬 모드 기록 (로그인 시 업로드 대상)
-  var LOCAL_FLAG = "health-dashboard-local";      // 로컬 모드로 쓰겠다는 선택
-  var LEGACY_KEYS = [LOCAL_KEY, "health-dashboard-v1"];   // Supabase 이전 기록
+  // 기록은 이 브라우저에만 저장한다. 로그인도 서버도 없다.
+  var KEY = "health-dashboard-v2";
+  var OLD_KEY = "health-dashboard-v1";
 
   var SLOTS = ["아침", "점심", "저녁", "간식"];
   var EX_TYPES = ["유산소", "웨이트"];
-  // 목표치는 profiles 테이블에서 읽어 채운다. 아래는 서버를 읽기 전까지 쓰는 기본값이다.
-  // 기본 체크 항목 4종은 가입 시 DB 트리거(handle_new_user)가 넣어 준다.
   var GOAL = { sleep: 7, ex: 30, meal: 3, water: 8 };
+  var DEFAULT_CHECKS = ["일어나서 물 한 잔", "계단 이용하기", "야식 먹지 않기", "12시 전에 눕기"];
 
   function todayKey(d) {
     return d.getFullYear() + "-" +
@@ -812,43 +715,24 @@
     };
   }
 
-  /* ---------- 저장 위치 : 계정(Supabase) 또는 이 기기(localStorage) ---------- */
-  // 계정 없이도 바로 쓸 수 있어야 한다. 로컬 모드에서 쓴 기록은
-  // 나중에 로그인하면 importLegacy() 가 그대로 계정으로 올린다.
-  var localMode = false;
-
-  function isLocal() { return localMode; }
-
-  function enterLocalMode(remember) {
-    localMode = true;
-    if (remember) { try { localStorage.setItem(LOCAL_FLAG, "1"); } catch (e) {} }
-  }
-  function leaveLocalMode() {
-    localMode = false;
-    try { localStorage.removeItem(LOCAL_FLAG); } catch (e) {}
-  }
-  function localRemembered() {
-    try { return localStorage.getItem(LOCAL_FLAG) === "1"; } catch (e) { return false; }
-  }
-
-  function saveLocal() {
-    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(state)); }
+  /* ---------- 저장 : localStorage ---------- */
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
     catch (e) { setStatus("이 브라우저에 저장하지 못했습니다.", true); }
   }
-  // 계정 모드에서는 가입 트리거가 만들어 주는 기본 체크 항목을 로컬에서는 직접 넣는다
-  var DEFAULT_CHECKS = ["일어나서 물 한 잔", "계단 이용하기", "야식 먹지 않기", "12시 전에 눕기"];
 
-  function loadLocal() {
+  function load() {
     var p = null;
-    try { p = JSON.parse(localStorage.getItem(LOCAL_KEY)); } catch (e) {}
+    try { p = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY)); } catch (e) {}
     if (!p || !Array.isArray(p.meals) || !Array.isArray(p.workouts) || !Array.isArray(p.checks)) {
       state = freshState();
       state.checks = DEFAULT_CHECKS.map(function (t) {
         return { id: uid(), text: t, done: false };
       });
-      saveLocal();
+      save();
       return;
     }
+    // v1에는 운동 종류가 없었다. 없거나 모르는 값이면 유산소로 채운다.
     p.workouts.forEach(function (w) {
       if (EX_TYPES.indexOf(w.type) < 0) w.type = EX_TYPES[0];
     });
@@ -862,253 +746,8 @@
       state.sleep = { bed: "", wake: "" };
       state.water = 0;
       state.checks.forEach(function (c) { c.done = false; });
-      saveLocal();
     }
-  }
-
-  /* ---------- 로그인 세션 ---------- */
-  var session = null;
-
-  function storeSession(s) {
-    session = s;
-    try {
-      if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
-      else localStorage.removeItem(SESSION_KEY);
-    } catch (e) { /* 저장소 접근 불가 — 새로고침하면 다시 로그인해야 한다 */ }
-  }
-  function restoreSession() {
-    try { session = JSON.parse(localStorage.getItem(SESSION_KEY)) || null; }
-    catch (e) { session = null; }
-  }
-  function normalize(j) {
-    return {
-      access_token: j.access_token,
-      refresh_token: j.refresh_token,
-      expires_at: j.expires_at || (Math.floor(Date.now() / 1000) + (j.expires_in || 3600)),
-      user: { id: j.user && j.user.id, email: j.user && j.user.email }
-    };
-  }
-
-  function authReq(path, body) {
-    return fetch(AUTH + path, {
-      method: "POST",
-      headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    }).then(function (r) {
-      return r.json().then(function (j) {
-        if (!r.ok) {
-          var e = new Error(j.error_description || j.msg || j.message || ("오류 " + r.status));
-          e.status = r.status;
-          e.code = j.error_code || j.code || "";
-          throw e;
-        }
-        return j;
-      });
-    }, function () {
-      // fetch 자체가 실패 = 네트워크 차단 / 오프라인
-      var e = new Error("네트워크에 연결하지 못했습니다.");
-      e.code = "network";
-      throw e;
-    });
-  }
-
-  // Supabase가 주는 영문 오류를 사람이 읽을 수 있는 안내로 바꾼다.
-  function authMessage(err, mode) {
-    var code = String(err.code || "");
-    var msg = String(err.message || "");
-    if (code === "network") {
-      return "네트워크에 연결하지 못했습니다. 인터넷 연결을 확인해 주세요.";
-    }
-    if (code === "over_email_send_rate_limit" || /email rate limit/i.test(msg)) {
-      return "확인 메일 발송 한도를 넘겼습니다.\n" +
-             "Supabase 기본 메일은 시간당 몇 건으로 제한됩니다. " +
-             "한 시간 뒤에 다시 시도하거나, Supabase 대시보드에서 " +
-             "Authentication → Sign In / Providers → Email → Confirm email 을 끄면 " +
-             "메일 없이 바로 가입됩니다.";
-    }
-    if (code === "email_not_confirmed" || /email not confirmed/i.test(msg)) {
-      return "아직 이메일 확인이 끝나지 않은 계정입니다. 확인 메일의 링크를 먼저 눌러 주세요.";
-    }
-    if (code === "user_already_exists" || /already registered|already been registered/i.test(msg)) {
-      return "이미 가입된 이메일입니다. 로그인으로 진행해 주세요.";
-    }
-    if (code === "weak_password" || /password should be at least/i.test(msg)) {
-      return "비밀번호가 너무 짧습니다. 6자 이상으로 입력해 주세요.";
-    }
-    if (code === "signup_disabled" || /signups not allowed/i.test(msg)) {
-      return "이 프로젝트에서 가입이 막혀 있습니다. Supabase 설정에서 가입을 열어 주세요.";
-    }
-    if (err.status === 400 && mode === "signin") {
-      return "이메일 또는 비밀번호가 맞지 않습니다.";
-    }
-    return msg || "처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
-  }
-
-  function signIn(email, pw) {
-    return authReq("/token?grant_type=password", { email: email, password: pw })
-      .then(function (j) { storeSession(normalize(j)); });
-  }
-  function signUp(email, pw) {
-    return authReq("/signup", { email: email, password: pw }).then(function (j) {
-      // 이메일 확인이 켜져 있으면 토큰이 오지 않는다
-      if (!j.access_token) return { needsConfirm: true };
-      storeSession(normalize(j));
-      return { needsConfirm: false };
-    });
-  }
-  function signOut() {
-    var s = session;
-    storeSession(null);
-    if (!s) return Promise.resolve();
-    return fetch(AUTH + "/logout", {
-      method: "POST",
-      headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + s.access_token }
-    }).catch(function () { /* 서버 정리는 실패해도 로컬 토큰은 이미 지웠다 */ });
-  }
-
-  // 만료 1분 전이면 미리 갱신한다
-  function freshToken() {
-    if (!session) return Promise.reject(new Error("로그인이 필요합니다"));
-    if (session.expires_at - 60 > Date.now() / 1000) return Promise.resolve(session.access_token);
-    return authReq("/token?grant_type=refresh_token", { refresh_token: session.refresh_token })
-      .then(function (j) { storeSession(normalize(j)); return session.access_token; })
-      .catch(function (e) { storeSession(null); throw e; });
-  }
-
-  /* ---------- Supabase 요청 ---------- */
-  function req(method, path, body, prefer, retried) {
-    return freshToken().then(function (token) {
-      var headers = { apikey: SUPABASE_KEY, Authorization: "Bearer " + token };
-      var opt = { method: method, headers: headers };
-      if (body !== undefined) {
-        headers["Content-Type"] = "application/json";
-        opt.body = JSON.stringify(body);
-      }
-      if (prefer) headers.Prefer = prefer;
-      return fetch(REST + path, opt);
-    }).then(function (r) {
-      // 서버가 토큰을 거부하면 만료 시각과 무관하게 한 번 갱신해서 다시 보낸다.
-      // 로컬 시계가 어긋났거나 토큰이 먼저 만료된 경우를 화면 오류로 만들지 않는다.
-      if (r.status === 401 && !retried && session) {
-        session.expires_at = 0;
-        return req(method, path, body, prefer, true);
-      }
-      if (!r.ok) {
-        return r.text().then(function (t) {
-          throw new Error(method + " " + path + " → " + r.status + " " + t);
-        });
-      }
-      return r.status === 204 ? null : r.json();
-    });
-  }
-  function get(p)          { return req("GET", p); }
-  function insert(p, rows) { return req("POST", p, rows, "return=minimal"); }
-  function upsert(p, row)  { return req("POST", p, row, "resolution=merge-duplicates,return=minimal"); }
-  function remove(p)       { return req("DELETE", p, undefined, "return=minimal"); }
-
-  // 요청은 한 줄로 세워 보낸다. 기록 직후 삭제처럼 순서가 뒤집히면 안 되는 조합이 있다.
-  // 로컬 모드에서는 서버로 보내지 않고 state 전체를 이 브라우저에 저장한다.
-  // 모든 변경이 "state 갱신 → render() → push()" 순서라 이 한 지점만 갈아끼우면 된다.
-  var queue = Promise.resolve();
-  function push(fn) {
-    if (isLocal()) { saveLocal(); return Promise.resolve(); }
-    queue = queue.then(fn).catch(function (e) {
-      console.error(e);
-      setStatus("저장하지 못했습니다. 새로고침하면 서버에 저장된 내용으로 돌아갑니다.", true);
-    });
-    return queue;
-  }
-
-  function me() { return session.user.id; }
-  function hhmm(t) { return t ? String(t).slice(0, 5) : ""; }
-
-  /* ---------- 읽기 ---------- */
-  // 오늘 날짜(log_date) 기준으로 읽는다. 지난 날 기록은 서버에 그대로 남는다.
-  function loadAll() {
-    var d = todayKey(new Date());
-    return Promise.all([
-      get("/profiles?select=goal_sleep_hours,goal_exercise_min,goal_meals,goal_water"),
-      get("/daily_logs?select=sleep_bed,sleep_wake,water&log_date=eq." + d),
-      get("/meals?select=id,slot,text,created_at&log_date=eq." + d + "&order=created_at"),
-      get("/workouts?select=id,type,name,minutes,created_at&log_date=eq." + d + "&order=created_at"),
-      get("/memos?select=id,text,created_at&order=created_at.desc&limit=100"),
-      get("/checklist_items?select=id,text,sort_order&order=sort_order"),
-      get("/checklist_marks?select=item_id,done&log_date=eq." + d)
-    ]).then(function (r) {
-      var prof = r[0][0];
-      if (prof) {
-        GOAL.sleep = Number(prof.goal_sleep_hours);
-        GOAL.ex    = prof.goal_exercise_min;
-        GOAL.meal  = prof.goal_meals;
-        GOAL.water = prof.goal_water;
-      }
-
-      var log = r[1][0] || {};
-      state.date = d;
-      state.sleep = { bed: hhmm(log.sleep_bed), wake: hhmm(log.sleep_wake) };
-      state.water = log.water || 0;
-
-      state.meals = r[2].map(function (m) {
-        return { id: m.id, slot: m.slot, text: m.text, at: m.created_at };
-      });
-      state.workouts = r[3].map(function (w) {
-        return { id: w.id, type: w.type, name: w.name, min: w.minutes, at: w.created_at };
-      });
-      state.memos = r[4].map(function (m) {
-        return { id: m.id, text: m.text, at: m.created_at };
-      });
-
-      var marks = {};
-      r[6].forEach(function (m) { marks[m.item_id] = m.done; });
-      state.checks = r[5].map(function (c) {
-        return { id: c.id, text: c.text, order: c.sort_order, done: !!marks[c.id] };
-      });
-    });
-  }
-
-  // 가입 직후 한 번만 — 이 브라우저에 남은 예전 기록을 계정으로 옮긴다
-  function importLegacy() {
-    if (state.meals.length || state.workouts.length || state.memos.length || state.water) {
-      return Promise.resolve(false);
-    }
-    var old = null;
-    for (var i = 0; i < LEGACY_KEYS.length && !old; i++) {
-      try {
-        var p = JSON.parse(localStorage.getItem(LEGACY_KEYS[i]));
-        if (p && Array.isArray(p.meals) && Array.isArray(p.workouts)) old = p;
-      } catch (e) { /* 못 읽으면 넘어간다 */ }
-    }
-    if (!old || old.date !== state.date) return Promise.resolve(false);   // 오늘 기록만 옮긴다
-
-    var d = state.date, u = me(), jobs = [];
-    if (old.meals.length) {
-      jobs.push(insert("/meals", old.meals.map(function (m) {
-        return { id: uid(), user_id: u, log_date: d, slot: m.slot, text: m.text, created_at: m.at };
-      })));
-    }
-    if (old.workouts.length) {
-      jobs.push(insert("/workouts", old.workouts.map(function (w) {
-        return {
-          id: uid(), user_id: u, log_date: d,
-          type: EX_TYPES.indexOf(w.type) < 0 ? EX_TYPES[0] : w.type,
-          name: w.name, minutes: w.min, created_at: w.at
-        };
-      })));
-    }
-    if ((old.memos || []).length) {
-      jobs.push(insert("/memos", old.memos.map(function (m) {
-        return { id: uid(), user_id: u, log_date: d, text: m.text, created_at: m.at };
-      })));
-    }
-    if (old.water || (old.sleep && old.sleep.bed)) {
-      jobs.push(upsert("/daily_logs", {
-        user_id: u, log_date: d, water: old.water || 0,
-        sleep_bed: (old.sleep && old.sleep.bed) || null,
-        sleep_wake: (old.sleep && old.sleep.wake) || null
-      }));
-    }
-    if (!jobs.length) return Promise.resolve(false);
-    return Promise.all(jobs).then(loadAll).then(function () { return true; });
+    save();
   }
 
   /* ---------- 상단 인사 ---------- */
@@ -1187,12 +826,7 @@
     state.meals.push(m);
     el.value = ""; el.focus();
     render();
-    push(function () {
-      return insert("/meals", {
-        id: m.id, user_id: me(), log_date: state.date,
-        slot: m.slot, text: m.text, created_at: m.at
-      });
-    });
+    save();
   });
 
   function renderMeals() {
@@ -1226,7 +860,7 @@
       li.appendChild(delButton(m.text + " 기록 삭제", function () {
         state.meals = state.meals.filter(function (x) { return x.id !== m.id; });
         render();
-        push(function () { return remove("/meals?id=eq." + m.id); });
+        save();
       }));
 
       mealList.appendChild(li);
@@ -1256,12 +890,7 @@
     state.workouts.push(w);
     nameEl.value = ""; minEl.value = ""; nameEl.focus();
     render();
-    push(function () {
-      return insert("/workouts", {
-        id: w.id, user_id: me(), log_date: state.date,
-        type: w.type, name: w.name, minutes: w.min, created_at: w.at
-      });
-    });
+    save();
   });
 
   function exTotalMin() {
@@ -1309,7 +938,7 @@
         li.appendChild(delButton(w.name + " 기록 삭제", function () {
           state.workouts = state.workouts.filter(function (x) { return x.id !== w.id; });
           render();
-          push(function () { return remove("/workouts?id=eq." + w.id); });
+          save();
         }));
 
         exList.appendChild(li);
@@ -1333,15 +962,7 @@
   function saveDailyLog() {
     clearTimeout(dailyTimer);
     dailyTimer = setTimeout(function () {
-      push(function () {
-        return upsert("/daily_logs", {
-          user_id: me(), log_date: state.date,
-          water: state.water,
-          sleep_bed: state.sleep.bed || null,
-          sleep_wake: state.sleep.wake || null,
-          updated_at: new Date().toISOString()
-        });
-      });
+      save();
     }, 400);
   }
 
@@ -1430,11 +1051,7 @@
     state.memos.unshift(m);
     memoText.value = "";
     render();
-    push(function () {
-      return insert("/memos", {
-        id: m.id, user_id: me(), log_date: state.date, text: m.text, created_at: m.at
-      });
-    });
+    save();
     memoText.focus();
   }
   document.getElementById("memoForm").addEventListener("submit", saveMemo);
@@ -1471,7 +1088,7 @@
       mt.appendChild(delButton("메모 삭제", function () {
         state.memos = state.memos.filter(function (x) { return x.id !== m.id; });
         render();
-        push(function () { return remove("/memos?id=eq." + m.id); });
+        save();
       }));
       box.appendChild(mt);
 
@@ -1497,11 +1114,7 @@
     state.checks.push(c);
     el.value = ""; el.focus();
     render();
-    push(function () {
-      return insert("/checklist_items", {
-        id: c.id, user_id: me(), text: c.text, sort_order: c.order
-      });
-    });
+    save();
   });
 
   function renderChecks() {
@@ -1533,11 +1146,7 @@
         c.done = box.checked;
         render();
         // 완료 표시는 날짜별로 따로 쌓인다 — 자정이 지나면 그 날짜 행이 없어 저절로 풀린다
-        push(function () {
-          return upsert("/checklist_marks", {
-            item_id: c.id, user_id: me(), log_date: state.date, done: c.done
-          });
-        });
+        save();
       });
 
       var lb = document.createElement("label");
@@ -1550,7 +1159,7 @@
         state.checks = state.checks.filter(function (x) { return x.id !== c.id; });
         render();
         // 완료 표시(checklist_marks)는 cascade로 함께 지워진다
-        push(function () { return remove("/checklist_items?id=eq." + c.id); });
+        save();
       }));
       chkList.appendChild(li);
     });
@@ -1652,11 +1261,8 @@
   }
   function paintFooter() {
     var f = document.getElementById("footer");
-    var base = isLocal()
-      ? "이 기기 저장 · 기록은 이 브라우저에만 있습니다. 로그인하면 그대로 계정으로 올라갑니다."
-      : ((session && session.user.email ? session.user.email + " · " : "") +
-         "기록은 날짜별로 계정에 저장됩니다. 자정이 지나면 새 날짜로 넘어가고 지난 기록은 그대로 남습니다.");
-    f.textContent = status || base;
+    f.textContent = status ||
+      "기록은 이 브라우저에만 저장됩니다. 자정이 지나면 오늘 기록은 초기화되고 체크 항목은 그대로 남습니다.";
     f.classList.toggle("bad", statusBad && !!status);
   }
 
@@ -1672,148 +1278,16 @@
     paintFooter();
   }
 
-  /* ---------- 로그인 화면 ---------- */
-  var body = document.body;
-  var authCard = document.getElementById("authCard");
-  var authBoot = document.getElementById("authBoot");
-  var authErr = document.getElementById("authErr");
-  var authEmail = document.getElementById("authEmail");
-  var authPw = document.getElementById("authPw");
-  var authSubmit = document.getElementById("authSubmit");
-  var mode = "signin";
-
-  function paintAuthMode() {
-    var up = mode === "signup";
-    document.getElementById("authTitle").textContent = up ? "가입하기" : "로그인";
-    document.getElementById("authSub").textContent = up
-      ? "이메일과 비밀번호(6자 이상)만 있으면 됩니다."
-      : "기록은 계정에 저장되고 본인만 볼 수 있습니다.";
-    authSubmit.textContent = up ? "가입하기" : "로그인";
-    document.getElementById("authSwitchLabel").textContent = up ? "이미 계정이 있으신가요?" : "계정이 없으신가요?";
-    document.getElementById("authSwitch").textContent = up ? "로그인" : "가입하기";
-    authPw.setAttribute("autocomplete", up ? "new-password" : "current-password");
-    // 여기서 메시지를 지우면 안 된다 — 제출 직후에도 호출되므로
-    // 방금 띄운 오류·안내가 곧바로 사라진다.
-  }
-  function clearAuthMsg() {
-    authErr.textContent = "";
-    authErr.classList.remove("info");
-  }
-  document.getElementById("authSwitch").addEventListener("click", function () {
-    mode = mode === "signup" ? "signin" : "signup";
-    clearAuthMsg();
-    paintAuthMode();
-    authEmail.focus();
-  });
-
-  // 로그인 화면을 띄운다 (세션 없음)
-  function showAuth() {
-    body.classList.remove("booting");
-    body.classList.add("locked");
-    authBoot.hidden = true;
-    authCard.hidden = false;
-    paintAuthMode();
-    authEmail.focus();
-  }
-  // 앱을 띄운다 (세션 있음)
-  function showApp() {
-    body.classList.remove("booting", "locked");
-    // 로컬 모드에서는 나갈 곳이 로그아웃이 아니라 로그인이다
-    document.getElementById("logoutBtn").textContent = isLocal() ? "로그인하기" : "로그아웃";
-    render();
-    document.getElementById("mealText").focus();
-  }
-  function showBoot(text) {
-    body.classList.add("booting");
-    authCard.hidden = true;
-    authBoot.hidden = false;
-    authBoot.textContent = text;
-  }
-
-  document.getElementById("authForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    var email = authEmail.value.trim(), pw = authPw.value;
-    if (!email || !pw) return;
-
-    var submitted = mode;
-    clearAuthMsg();
-    authSubmit.disabled = true;
-    authSubmit.textContent = submitted === "signup" ? "가입하는 중…" : "로그인하는 중…";
-
-    (submitted === "signup" ? signUp(email, pw) : signIn(email, pw).then(function () { return {}; }))
-      .then(function (r) {
-        if (r.needsConfirm) {
-          authErr.classList.add("info");
-          authErr.textContent =
-            "가입은 됐습니다. 확인 메일의 링크를 누른 뒤 로그인해 주세요.\n" +
-            "메일이 오지 않으면 Supabase 대시보드에서 " +
-            "Authentication → Sign In / Providers → Email → Confirm email 을 끄면 " +
-            "메일 없이 바로 로그인됩니다.";
-          mode = "signin";
-          paintAuthMode();
-          return;
-        }
-        authPw.value = "";
-        // 로컬 모드로 쓰던 기록은 importLegacy() 가 계정으로 올린다
-        leaveLocalMode();
-        return start();
-      })
-      .catch(function (err) {
-        console.error(err);
-        authErr.textContent = authMessage(err, submitted);
-      })
-      .then(function () {
-        authSubmit.disabled = false;
-        paintAuthMode();
-      });
-  });
-
-  document.getElementById("logoutBtn").addEventListener("click", function () {
-    if (isLocal()) {
-      // 로컬 기록은 지우지 않는다. 로그인하면 그대로 계정으로 올라간다.
-      leaveLocalMode();
-      setStatus("");
-      showAuth();
-      return;
-    }
-    signOut().then(function () {
-      state = freshState();
-      setStatus("");
-      showAuth();
-    });
-  });
-
-  document.getElementById("localBtn").addEventListener("click", function () {
-    enterLocalMode(true);
-    clearAuthMsg();
-    start();
-  });
-
   /* ---------- 시작 ---------- */
   // 세션이 있으면 계정에서, 로컬 모드면 이 브라우저에서 읽는다. 둘 다 아니면 로그인 화면.
   function start() {
-    if (isLocal()) {
-      loadLocal();
-      showApp();
-      return Promise.resolve();
-    }
-    if (!session) { showAuth(); return Promise.resolve(); }
-    showBoot("기록을 불러오는 중…");
-    return loadAll()
-      .then(importLegacy)
-      .then(showApp)
-      .catch(function (e) {
-        console.error(e);
-        if (!session) { showAuth(); return; }   // 토큰 갱신 실패 → 다시 로그인
-        showApp();
-        setStatus("기록을 불러오지 못했습니다. 새로고침해 주세요.", true);
-      });
+    load();
+    render();
+    document.getElementById("mealText").focus();
   }
 
   paintHeader();
   themeBtn.textContent = isDark() ? "라이트 모드" : "다크 모드";
-  restoreSession();
-  if (!session && localRemembered()) enterLocalMode(false);
   start();
 }());
 </script>

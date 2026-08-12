@@ -22,10 +22,10 @@
 | 9 | Starbucks 디자인 적용 | ⛔ 폐기 | 태스크 10으로 대체 |
 | 10 | Airbnb 디자인 적용 · 이모지 · 일러스트 | ✅ 완료 | 22/22 재통과 + 라이트/다크 스크린샷 |
 | 11 | 레이아웃 재구성 · 운동 종류 · 점수 표정 | ✅ 완료 | 32/32 + 마이그레이션 6/6 |
-| 12 | 배포용 Supabase 저장 전환 (로그인 · 날짜별 기록) | ✅ 완료 | 42/42 통과 |
+| 12 | 배포용 Supabase 저장 전환 (로그인 · 날짜별 기록) | ⛔ 되돌림 | 태스크 14로 제거 |
 | 13 | Vercel 404 수정 (`vercel.json` 라우팅) | ⚠️ 배포 확인 필요 | 로컬 검증 불가 |
 
-**전체 자동 검증: 42 / 42 통과** (Edge headless, 2026-08-12)
+**전체 자동 검증: 28 / 28 통과** (Edge headless, 2026-08-12 · 로그인 제거 후)
 
 ---
 
@@ -395,3 +395,55 @@ $m = [regex]::Matches($dom, '자동 검증 결과 — [0-9][\s\S]*')
 검증이 필요하면 v1 스키마(운동에 `type` 없음) 데이터를 심는 스크립트를 주입한 사본을 만들어
 새 브라우저 프로필로 실행하고, 두 번째 로드에서 `health-dashboard-v2` 키와
 `workouts[].type === "유산소"` 를 확인한다. (2026-08-12 기준 6 / 6 통과)
+
+---
+
+## 태스크 14 — 로그인 제거 · localStorage 복귀 ✅
+
+**요청**: "그냥 로그인 방법 없애자"
+
+**왜 되돌렸나**
+
+태스크 12에서 넣은 Supabase 인증이 가입 단계에서 막혔다.
+
+| 확인한 것 | 결과 |
+|---|---|
+| `GET /auth/v1/settings` | `mailer_autoconfirm: false` — 이메일 확인 필수 |
+| `POST /auth/v1/signup` | `429 over_email_send_rate_limit` — 무료 플랜 메일 한도 초과 |
+| `PATCH api.supabase.com/.../config/auth` | `401 JWT could not be decoded` — publishable 키로는 설정 변경 불가 |
+
+이 설정은 Supabase 대시보드에서만 끌 수 있고 코드로 우회할 수 없다.
+개인 1인용 대시보드에 계정·이메일 확인은 과한 마찰이라 PRD 5항 제외 범위대로 되돌렸다.
+
+**제거한 것**
+
+- 로그인 게이트 마크업(`#authGate`, `.authcard`)과 관련 CSS 전부
+- 세션 처리 — `storeSession` · `restoreSession` · `normalize` · `freshToken`
+- 인증 — `authReq` · `authMessage` · `signIn` · `signUp` · `signOut`
+- Supabase REST — `req` · `get` · `insert` · `upsert` · `remove` · `loadAll` · `importLegacy` · `me`
+- 헤더의 로그아웃 버튼, `body.locked` · `body.booting` 상태
+
+**남긴 것** — 태스크 11까지의 화면·기능은 그대로다. 디자인·2×2 레이아웃·운동 종류·점수 표정 모두 유지.
+
+**저장 계층 교체 방식**
+
+모든 변경이 `state 갱신 → render() → push(서버요청)` 순서였다.
+서버 요청 콜백 10곳을 중괄호 짝을 세어 `save()` 로 치환하고, `save()` 는 `state` 전체를
+`localStorage["health-dashboard-v2"]` 에 쓴다. 핸들러 로직은 손대지 않았다.
+
+`health-dashboard-v1` 키가 있으면 읽어서 운동 `type` 을 `유산소` 로 채워 이관한다.
+
+**파일 크기**: 76.7KB → 53.8KB
+
+| 검증 항목 | 결과 |
+|---|---|
+| 로그인 게이트·로그아웃 버튼 없음, 대시보드 즉시 표시 | PASS |
+| 기본 체크 항목 4종 생성 | PASS |
+| 식단 기록·삭제 | PASS |
+| 운동 종류 배지·종류별 합계·0분 차단·삭제 후 갱신 | PASS |
+| 수분 증감, 수면 자동 계산·목표 배지 | PASS |
+| 메모 저장·삭제, 체크 토글·추가·삭제 | PASS |
+| 점수 8.8 · 표정 😄 · 상단 요약 동기화 | PASS |
+| localStorage 저장, 세션 키 미생성 | PASS |
+
+**전체 28 / 28 통과.** 라이트·다크 렌더링 확인.
