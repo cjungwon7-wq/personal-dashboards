@@ -24,9 +24,10 @@
     try { return JSON.parse(sessionStorage.getItem("labor-dashboard-session")); }
     catch (e) { return null; }
   }
-  async function anonRows(table) {
+  // 테이블마다 PK 가 달라 조회 컬럼을 받는다 (labor_curations 는 item_id 가 PK)
+  async function anonRows(table, col) {
     try {
-      var r = await fetch(SB_URL + "/rest/v1/" + table + "?select=id&limit=5",
+      var r = await fetch(SB_URL + "/rest/v1/" + table + "?select=" + (col || "id") + "&limit=5",
         { headers: { apikey: SB_KEY } });
       return await r.json();
     } catch (e) { return null; }
@@ -41,20 +42,39 @@
     } catch (e) { return null; }
   }
 
-  // ---------- 로그인 게이트 ----------
-  // 읽기에도 로그인이 필요하다 (PRD 6항). 화면을 가리는 것과 데이터가 막히는 것은 다르다.
-  ok("로그인 전 앱이 가려짐",
-    document.body.classList.contains("locked") &&
-    document.getElementById("authGate").hidden === false &&
-    document.querySelectorAll("#cards .item").length === 0);
-  ok("가입 기능을 두지 않음",
-    !/회원가입|가입하기|sign ?up/i.test(document.getElementById("authGate").textContent));
+  // ---------- 공개 브리핑 (로그인 없이) ----------
+  // 로그인은 선택이다. 경계는 "무엇이 사내 정보인가" 로 긋는다 —
+  // 법령·판례는 공개 자료라 열고, 담당자 노트만 로그인을 요구한다.
+  var publicReady = await waitFor(function () {
+    return document.documentElement.getAttribute("data-loaded") === "public";
+  }, 25000);
+  ok("로그인 없이 브리핑이 열림",
+    publicReady && document.getElementById("authGate").hidden === true);
+  ok("비로그인 상태에서 항목 12건", document.querySelectorAll("#cards .item").length === 12);
+  ok("비로그인 상태에서 HR 이슈도 보임",
+    document.querySelectorAll("#hrList .item").length > 0);
 
   var anonItems = await anonRows("labor_items");
-  ok("비로그인 직접 호출이 0건 (RLS)", Array.isArray(anonItems) && anonItems.length === 0);
+  ok("브리핑은 비로그인 직접 호출로도 받음",
+    Array.isArray(anonItems) && anonItems.length > 0);
   var anonNotes = await anonRows("labor_notes");
-  ok("비로그인 노트 조회도 0건", Array.isArray(anonNotes) && anonNotes.length === 0);
+  ok("담당자 노트는 비로그인 직접 호출로 0건 (RLS)",
+    Array.isArray(anonNotes) && anonNotes.length === 0);
+  var anonCur = await anonRows("labor_curations", "item_id");
+  ok("큐레이션 코멘트도 비로그인 0건", Array.isArray(anonCur) && anonCur.length === 0);
 
+  ok("비로그인엔 노트 대신 로그인 안내",
+    document.getElementById("noteLogin").hidden === false &&
+    document.getElementById("noteForm").hidden === true &&
+    document.querySelectorAll("#noteList .note").length === 0);
+  // 못 보는 것과 없는 것은 다르다 — "0건" 이라고 쓰면 노트가 없다는 뜻이 된다
+  ok("노트 건수를 0건이라 적지 않음",
+    /로그인/.test(document.querySelector("#noteCard .fcount").textContent));
+  ok("헤더에 로그인 버튼 노출",
+    document.getElementById("inBtn").hidden === false &&
+    document.getElementById("outBtn").hidden === true);
+
+  // ---------- 로그인 (선택) ----------
   var authForm = document.getElementById("authForm");
   function submitAuth(email, pw) {
     document.getElementById("authEmail").value = email || "";
@@ -62,22 +82,38 @@
     authForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   }
 
+  document.getElementById("inBtn").click();
+  ok("로그인 버튼이 게이트를 엶", document.getElementById("authGate").hidden === false);
+  ok("가입 기능을 두지 않음",
+    !/회원가입|가입하기|sign ?up/i.test(document.getElementById("authGate").textContent));
+
+  // 로그인이 필수가 아니므로 나갈 길이 있어야 한다
+  document.getElementById("gateClose").click();
+  ok("게이트를 닫고 브리핑으로 돌아갈 수 있음",
+    document.getElementById("authGate").hidden === true &&
+    document.querySelectorAll("#cards .item").length === 12);
+  document.getElementById("noteLoginBtn").click();
+  ok("노트 카드의 로그인 버튼으로도 열림",
+    document.getElementById("authGate").hidden === false);
+
   submitAuth(creds.email, "wrong-" + (creds.pw || "x"));
   await waitFor(function () {
     return document.documentElement.getAttribute("data-loaded") === "denied";
   });
   ok("틀린 비밀번호 거부",
     document.getElementById("authHint").className.indexOf("err") !== -1 &&
-    document.body.classList.contains("locked") &&
-    document.querySelectorAll("#cards .item").length === 0);
+    document.getElementById("authGate").hidden === false &&
+    document.querySelectorAll("#noteList .note").length === 0);
 
   submitAuth(creds.email, creds.pw);
   var entered = await waitFor(function () {
     return document.documentElement.getAttribute("data-loaded") === "1";
   }, 25000);
-  ok("로그인 성공 후 앱 진입",
-    entered && !document.body.classList.contains("locked") &&
-    document.getElementById("authGate").hidden === true);
+  ok("로그인 성공 후 게이트가 닫힘",
+    entered && document.getElementById("authGate").hidden === true);
+  ok("로그인하면 로그아웃 버튼으로 바뀜",
+    document.getElementById("inBtn").hidden === true &&
+    document.getElementById("outBtn").hidden === false);
   ok("세션은 sessionStorage 에만 (공용 PC 고려)",
     !!sessionStorage.getItem("labor-dashboard-session") &&
     !localStorage.getItem("labor-dashboard-session"));
@@ -689,12 +725,17 @@
   // 화면에서 폼을 감추는 것만으로는 칸막이가 되지 않는다. 서버가 거부해야 한다.
   if (creds.memberEmail && creds.memberPw) {
     document.getElementById("outBtn").click();
-    await waitFor(function () { return document.body.classList.contains("locked"); }, 15000);
-    ok("로그아웃하면 다시 잠김",
-      document.body.classList.contains("locked") &&
+    await waitFor(function () {
+      return document.documentElement.getAttribute("data-loaded") === "public";
+    }, 15000);
+    // 로그아웃은 화면을 닫는 동작이 아니다 — 사내 정보만 닫히고 공개 브리핑은 남는다
+    ok("로그아웃하면 노트만 닫히고 브리핑은 남음",
       !sessionStorage.getItem("labor-dashboard-session") &&
-      document.querySelectorAll("#cards .item").length === 0);
+      document.getElementById("noteLogin").hidden === false &&
+      document.querySelectorAll("#noteList .note").length === 0 &&
+      document.querySelectorAll("#cards .item").length === 12);
 
+    document.getElementById("inBtn").click();
     submitAuth(creds.memberEmail, creds.memberPw);
     var memberIn = await waitFor(function () {
       return document.documentElement.getAttribute("data-loaded") === "1";

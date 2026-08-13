@@ -573,13 +573,12 @@ main{padding-top:var(--s-lg);padding-bottom:var(--s-section)}
   .band::before,.band::after{opacity:.35}
 }
 
-/* ---------- 로그인 게이트 ----------
-   읽기에도 로그인이 필요하다 (PRD 6항). 다만 화면을 가리는 것은 칸막이가 아니다 —
-   실제로 막는 것은 RLS 이고, 이 게이트는 그 사실을 사용자에게 보여줄 뿐이다.
-   로그인하지 않으면 요청 자체를 보내지 않는다. */
-body.locked>.band,body.locked>.wrap,body.locked>.foot{display:none}
-/* 세션을 확인하는 순간에는 게이트도 본문도 띄우지 않는다 — 깜빡임 방지 */
-body.booting .gate{visibility:hidden}
+/* ---------- 로그인 (선택) ----------
+   브리핑은 법제처·대법원·언론의 공개 자료라 로그인 없이 보인다.
+   담당자 노트만 사내 정보라 로그인을 요구한다 (PRD 2항) — 그 경계는 화면이 아니라
+   RLS 가 긋는다. 비로그인 요청에는 노트가 한 줄도 내려오지 않는다.
+   게이트는 필요할 때만 열리는 오버레이다. */
+.gate[hidden]{display:none}
 
 .gate{
   position:fixed;inset:0;z-index:50;overflow:auto;
@@ -599,6 +598,15 @@ body.booting .gate{visibility:hidden}
   border:1px solid var(--hairline);border-radius:24px;
   padding:var(--s-lg);
 }
+/* 로그인이 선택이므로 닫고 나갈 길이 있어야 한다 */
+.gateclose{
+  position:absolute;top:14px;right:14px;
+  width:32px;height:32px;line-height:1;
+  background:transparent;color:var(--muted);
+  border:1px solid var(--hairline);border-radius:50%;
+  font-family:inherit;font-size:17px;cursor:pointer;
+}
+.gateclose:hover{color:var(--ink);border-color:var(--ink)}
 /* 키커는 밴드 위 밝은 톤이 기본이라 흰 카드에서는 읽히지 않는다 — 카드용으로 되돌린다 */
 .gatecard .kicker{margin:0 0 var(--s-xxs);color:var(--muted)}
 .gatecard h2{margin:0 0 var(--s-xs);font-size:22px;font-weight:700;letter-spacing:-0.02em}
@@ -624,15 +632,18 @@ body.booting .gate{visibility:hidden}
 .readonly{margin:0 0 var(--s-md);font-size:13.5px;line-height:1.7;color:var(--muted)}
 </style>
 </head>
-<body class="booting locked">
+<body class="booting">
 
-<!-- 로그인 게이트 — 가입 기능은 두지 않는다. 계정은 관리자가 발급한다 (PRD 6항) -->
-<div class="gate" id="authGate">
+<!-- 로그인은 선택이다. 브리핑은 로그인 없이 보이고, 담당자 노트에만 필요하다.
+     가입 기능은 두지 않는다 — 계정은 관리자가 발급한다 (PRD 6항) -->
+<div class="gate" id="authGate" hidden>
   <form class="gatecard" id="authForm" autocomplete="on">
+    <button type="button" class="gateclose" id="gateClose" aria-label="닫기">&#215;</button>
     <p class="kicker">Labor Law Briefing</p>
-    <h2>인사노무 법령 브리핑</h2>
+    <h2>담당자 로그인</h2>
     <p class="gatenote">
-      인사팀 공용 화면입니다. 담당자 코멘트가 담기므로 열람에도 로그인이 필요합니다.
+      브리핑은 로그인 없이 보실 수 있습니다.
+      <strong>담당자 노트</strong>는 사내 정보라 로그인한 팀원에게만 열립니다.
       계정은 관리자가 발급합니다.
     </p>
 
@@ -660,7 +671,8 @@ body.booting .gate{visibility:hidden}
       <span class="acct">
         <span class="who" id="whoPill" hidden></span>
         <button type="button" id="themeBtn" class="btn btn-secondary" aria-pressed="false">다크 모드</button>
-        <button type="button" id="outBtn" class="btn btn-secondary">로그아웃</button>
+        <button type="button" id="inBtn" class="btn btn-secondary">담당자 로그인</button>
+        <button type="button" id="outBtn" class="btn btn-secondary" hidden>로그아웃</button>
       </span>
     </div>
 
@@ -737,13 +749,20 @@ body.booting .gate{visibility:hidden}
   <section class="notecard" id="noteCard">
     <div class="fhead"><h2>담당자 노트</h2><span class="fcount"></span><button type="button" class="foldbtn" aria-expanded="true">&#9662;</button></div>
 
+    <!-- 비로그인 안내. 화면만 감추는 게 아니라 RLS 가 노트를 내려보내지 않는다 -->
+    <p class="readonly" id="noteLogin" hidden>
+      담당자 노트는 <strong>사내 정보</strong>라 로그인한 팀원에게만 보입니다.
+      브리핑은 로그인 없이 계속 보실 수 있습니다.
+      <button type="button" class="chip" id="noteLoginBtn">담당자 로그인</button>
+    </p>
+
     <!-- 담당자가 아니면 폼 대신 이 안내가 뜬다. 화면만 감추는 게 아니라
          RLS 가 팀원의 쓰기를 거부한다 (PRD 6항 권한 모델) -->
     <p class="readonly" id="noteReadonly" hidden>
       노트 작성은 <strong>담당자 계정</strong>만 할 수 있습니다. 지금 계정은 읽기 전용입니다.
     </p>
 
-    <form class="noteform" id="noteForm">
+    <form class="noteform" id="noteForm" hidden>
       <input type="text" id="noteBy" class="ninput" maxlength="30"
              placeholder="작성자 (예: 김민서 / 인사기획)" autocomplete="off">
       <textarea id="noteText" class="ntextarea" rows="3"
@@ -903,30 +922,40 @@ function toNote(r){
   };
 }
 
-/* 첫 로드에 필요한 것을 한 번에 가져온다.
-   labor_members 는 본인 행만 내려오므로(RLS) 역할 판정에 그대로 쓴다. */
+/* 첫 로드. 로그인 여부에 따라 부르는 것이 다르다.
+   브리핑과 수집 시각은 공개 자료라 누구나 받고, 노트와 역할은 로그인했을 때만 부른다.
+   비로그인으로 불러도 RLS 가 빈 배열을 주지만, 아예 보내지 않는 편이
+   "무엇이 사내 정보인지" 코드에서도 분명하다. */
 function loadAll(){
-  return Promise.all([
+  var logged = !!(me && session && session.access_token);
+
+  var reqs = [
     rows("labor_items?select=*&order=published_on.desc"),
-    rows("labor_notes?select=*&order=created_at.desc"),
-    rows("labor_runs?select=finished_at,ok,inserted_count&order=started_at.desc&limit=1"),
-    rows("labor_members?select=role,display_name")
-  ]).then(function(res){
-    var items = res[0], notes = res[1], runs = res[2], mem = res[3];
+    rows("labor_runs?select=finished_at,ok,inserted_count&order=started_at.desc&limit=1")
+  ];
+  if (logged){
+    reqs.push(rows("labor_notes?select=*&order=created_at.desc"));
+    reqs.push(rows("labor_members?select=role,display_name"));
+  }
+
+  return Promise.all(reqs).then(function(res){
+    var items = res[0], runs = res[1];
 
     DATA.law = []; DATA.notice = []; DATA.prec = []; DATA.interp = []; DATA.hr = [];
     items.forEach(function(r){
       var k = KIND_OF[r.kind];
       if (k && DATA[k]) DATA[k].push(toItem(r));
     });
+    lastRun = (runs && runs[0]) ? runs[0] : null;
 
-    /* 역할 행이 없으면 팀원으로 본다 — 기본값을 권한이 넓은 쪽에 두지 않는다 */
-    var m = mem && mem[0];
+    if (!logged){ DATA.notes = []; return; }
+
+    /* 역할 행이 없으면 팀원으로 본다 — 기본값을 권한이 넓은 쪽에 두지 않는다.
+       labor_members 는 본인 행만 내려온다 (RLS) */
+    var mem = res[3], m = mem && mem[0];
     me.role = (m && m.role) || "팀원";
     me.name = (m && m.display_name) || me.email;
-
-    DATA.notes = notes.map(toNote);
-    lastRun = (runs && runs[0]) ? runs[0] : null;
+    DATA.notes = (res[2] || []).map(toNote);
   });
 }
 
@@ -1293,6 +1322,13 @@ function renderNotes(){
   var count = document.querySelector("#noteCard .fcount");
   ul.textContent = "";
 
+  /* 비로그인이면 목록 자체가 없다. "0건" 이라고 쓰면 노트가 없다는 뜻이 되어
+     사실과 다르다 — 못 보는 것과 없는 것은 다르다. */
+  if (!me){
+    count.textContent = "로그인 필요";
+    return;
+  }
+
   if (!list.length){
     ul.appendChild(el("li","empty","이 날짜까지 등록된 노트가 없습니다."));
     count.textContent = "0건";
@@ -1527,53 +1563,84 @@ function initTheme(){
   });
 }
 
-/* ---------- 계정 화면 상태 ---------- */
-function showGate(msg, isErr){
-  document.body.classList.add("locked");
-  document.body.classList.remove("booting");
+/* ---------- 계정 화면 상태 ----------
+   로그인은 선택이다. 게이트는 필요할 때만 여는 오버레이이고, 뒤의 브리핑은 계속 보인다. */
+function openGate(msg, isErr){
   document.getElementById("authGate").hidden = false;
 
   var hint = document.getElementById("authHint");
   hint.textContent = msg || "계정이 없으면 인사팀 관리자에게 요청하세요.";
   hint.className = isErr ? "gatehint err" : "gatehint";
 
-  document.getElementById("whoPill").hidden = true;
   var em = document.getElementById("authEmail");
   if (em && !em.value) em.focus();
 }
 
-/* 역할에 따라 쓰기 화면을 연다. 이건 안내일 뿐이고 실제 차단은 RLS 가 한다 */
-function applyRole(){
+function closeGate(){
+  document.getElementById("authGate").hidden = true;
+  document.getElementById("authPw").value = "";   /* 화면에 남겨 두지 않는다 */
+}
+
+/* 계정 상태를 화면에 반영한다. 이건 안내일 뿐이고 실제 차단은 RLS 가 한다 */
+function applyAccount(){
+  var logged = !!me;
+  var staff  = logged && me.role === "담당자";
+
   var pill = document.getElementById("whoPill");
   pill.textContent = "";
-  pill.appendChild(document.createTextNode(me.name + " "));
-  pill.appendChild(el("span","role",me.role));
-  pill.hidden = false;
+  if (logged){
+    pill.appendChild(document.createTextNode(me.name + " "));
+    pill.appendChild(el("span","role",me.role));
+  }
+  pill.hidden = !logged;
 
-  var staff = me.role === "담당자";
-  document.getElementById("noteForm").hidden = !staff;
-  document.getElementById("noteReadonly").hidden = staff;
+  document.getElementById("inBtn").hidden  = logged;
+  document.getElementById("outBtn").hidden = !logged;
+
+  document.getElementById("noteLogin").hidden    = logged;
+  document.getElementById("noteReadonly").hidden = !logged || staff;
+  document.getElementById("noteForm").hidden     = !staff;
+
   if (staff && !document.getElementById("noteBy").value){
     document.getElementById("noteBy").value = me.name;
   }
 }
 
-/* 로그인 이후 — 데이터를 받아 화면을 연다 */
+/* 데이터를 받아 화면을 연다. 로그인 여부와 무관하게 항상 브리핑은 그린다. */
 function enter(){
   return loadAll().then(function(){
-    document.body.classList.remove("locked","booting");
-    document.getElementById("authGate").hidden = true;
-    applyRole();
+    document.body.classList.remove("booting");
+    applyAccount();
     render();
-    document.documentElement.setAttribute("data-loaded","1");
+    document.documentElement.setAttribute("data-loaded", me ? "1" : "public");
   }).catch(function(){
-    /* 토큰이 죽었으면 빈 화면을 띄우지 않고 로그인으로 돌린다 */
+    /* 로그인 상태에서 실패했다면 토큰이 죽은 것이다.
+       빈 화면을 띄우지 말고 비로그인으로 내려앉아 브리핑만이라도 보여준다. */
+    var wasLogged = !!me;
     storeSession(null);
     session = null; me = null;
-    showGate("세션이 만료되었습니다. 다시 로그인해 주세요.", true);
+    if (wasLogged){
+      openGate("세션이 만료되었습니다. 다시 로그인해 주세요.", true);
+      return enter();
+    }
+    document.body.classList.remove("booting");
+    applyAccount();
+    render();
     document.documentElement.setAttribute("data-loaded","error");
   });
 }
+
+document.getElementById("inBtn").addEventListener("click", function(){ openGate(); });
+document.getElementById("noteLoginBtn").addEventListener("click", function(){ openGate(); });
+document.getElementById("gateClose").addEventListener("click", function(){ closeGate(); });
+
+/* 게이트 바깥을 누르거나 Esc 로도 닫힌다 — 로그인이 필수가 아니므로 나갈 길을 막지 않는다 */
+document.getElementById("authGate").addEventListener("click", function(e){
+  if (e.target === this) closeGate();
+});
+document.addEventListener("keydown", function(e){
+  if (e.key === "Escape" && !document.getElementById("authGate").hidden) closeGate();
+});
 
 document.getElementById("authForm").addEventListener("submit", function(e){
   e.preventDefault();
@@ -1587,7 +1654,7 @@ document.getElementById("authForm").addEventListener("submit", function(e){
   hint.className = "gatehint";
 
   signIn(email, pw).then(function(){
-    document.getElementById("authPw").value = "";   /* 화면에 남겨 두지 않는다 */
+    closeGate();
     return enter();
   }).catch(function(err){
     var m = String((err && err.message) || "");
@@ -1601,25 +1668,22 @@ document.getElementById("authForm").addEventListener("submit", function(e){
 
 document.getElementById("outBtn").addEventListener("click", function(){
   signOut().then(function(){
-    document.getElementById("authPw").value = "";
-    /* 비운 데이터로 다시 그린다 — 감추기만 하면 앞사람의 브리핑이 DOM 에 남는다.
-       공용 PC 를 전제한 화면에서 이건 세션을 지우지 않은 것과 다를 바 없다. */
-    render();
     document.getElementById("noteBy").value = "";
-    showGate("로그아웃했습니다.");
-    document.documentElement.removeAttribute("data-loaded");
+    /* 노트는 비우되 브리핑은 다시 받아 그린다 — 로그아웃이 화면을 닫는 동작은 아니다.
+       비우지 않고 두면 앞사람의 노트가 DOM 에 남는다 (공용 PC) */
+    render();
+    return enter();
   });
 });
 
 /* ---------- 시작 ----------
-   테마는 로그인 전에도 적용한다 — 계정 데이터가 아니라 이 브라우저의 화면 설정이다 */
+   테마는 계정 데이터가 아니라 이 브라우저의 화면 설정이라 먼저 적용한다 */
 initTheme();
 
 (function boot(){
   var s = restoreSession();
-  if (!s){ showGate(); return; }
   /* 역할은 서버에서 다시 확인한다. 세션에 담아 두면 위조할 수 있다 */
-  me = { id:s.user.id, email:s.user.email, name:s.user.email, role:"팀원" };
+  if (s) me = { id:s.user.id, email:s.user.email, name:s.user.email, role:"팀원" };
   enter();
 }());
 
