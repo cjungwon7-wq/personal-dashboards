@@ -221,8 +221,7 @@ GitHub(`cjungwon7-wq/personal-dashboards`) 연동이라 `main` 에 push 하면 �
 
 | 경로 | 대상 | 결과 |
 |---|---|---|
-| `/` | 헬스케어 | 200 · 로컬 파일과 해시 일치 |
-| `/labor` | 직무AI | 200 · 로컬 파일과 해시 일치 |
+| `/` · `/labor` | **직무AI** | 200 · 로컬 파일과 해시 일치 |
 | `/health` · `/stocks` | 헬스케어 · 관심종목 | 200 |
 | `90533.jpg` | — | 404 (`.vercelignore` 로 제외됨) |
 

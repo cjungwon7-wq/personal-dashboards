@@ -1,10 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/", "destination": "/헬스케어_대시보드.html" },
+    { "source": "/", "destination": "/직무AI_대시보드.html" },
+    { "source": "/labor", "destination": "/직무AI_대시보드.html" },
     { "source": "/health", "destination": "/헬스케어_대시보드.html" },
-    { "source": "/stocks", "destination": "/관심종목_대시보드.html" },
-    { "source": "/labor", "destination": "/직무AI_대시보드.html" }
+    { "source": "/stocks", "destination": "/관심종목_대시보드.html" }
   ],
   "headers": [
     {
