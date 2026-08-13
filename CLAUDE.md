@@ -50,7 +50,10 @@
     - 테이블은 `labor_` 접두어를 쓴다. 같은 프로젝트에 헬스케어 태스크 12(되돌림)의 잔여
       테이블 7개(`profiles` · `daily_logs` · `meals` · `workouts` · `memos` ·
       `checklist_items` · `checklist_marks`)가 남아 있다 — **건드리지 않는다.**
-    - **읽기에도 로그인이 필요하다.** RLS 읽기 정책을 `authenticated` 로 제한하고 `anon` 에 열지 않는다.
+    - **읽기에도 로그인이 필요하다.** `anon` 에 열지 않는다.
+      읽기 자격은 `authenticated` 가 아니라 **`labor_members` 등록자**다 (`private.is_labor_member()`).
+      저장소가 공개라 publishable 키가 노출돼 있고 자유 가입이 열려 있어, `authenticated` 로만
+      열면 외부인이 가입해서 읽을 수 있다.
     - 화면에 **가입 기능을 만들지 않는다.** 계정은 관리자가 Supabase 대시보드에서 발급한다
       (`mailer_autoconfirm: false` 라 가입 API 는 확인 메일에서 막힌다 — 헬스케어 태스크 12가 여기서 좌초했다).
 - 사용자 입력은 `textContent` 로 삽입한다. `innerHTML` 문자열 조립 금지.
