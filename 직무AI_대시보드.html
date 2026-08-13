@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>노동법 이슈 확인 — 인사노무 법령 브리핑</title>
+<style>
+/* ===========================================================
+   구조 · 타이포 · radius · 여백 : DESIGN-clay.md
+   팔레트                        : 제니미감.jpg 에서 추출한 색에서 파생
+                                   (Pantone Cannoli Cream 안은 사용자 판단으로 철회)
+     추출 상위값 — #FFD0C6(35.8%) #F6C5BF(14.9%) #D6ADA3(6.6%)
+                   #60635C(5.8%) #C5A297(3.8%) #8F7C76(2.4%)
+   Clay 의 "채도 높은 6색" 원칙은 모노톤 더스티 톤과 양립하지 않아 팔레트만 교체했다.
+   여백은 Clay 스펙에서 한 단계 축소 (섹션 96→48px, 카드 패딩 32→24px).
+   =========================================================== */
+
+/* Pretendard — 자체 호스팅. 제3자 CDN 을 쓰지 않는다.
+   Inter 와 본고딕을 바탕으로 만들어져 Clay 가 요구하는 Inter 의 성격을
+   유지하면서 한글 글리프까지 갖는다 (Inter 에는 한글이 없다). */
+@font-face{
+  font-family:"Pretendard Variable";
+  src:url("fonts/PretendardVariable.woff2") format("woff2-variations");
+  font-weight:45 920;
+  font-style:normal;
+  font-display:swap;
+}
+
+:root{
+  /* --- 표면 — 제니미감 블러시를 씻어낸 따뜻한 계열 ---
+     지면(카드)은 거의 흰색, 바닥은 한 톤 눌러 카드가 떠 보이게 한다.
+     색을 카드 전체에 칠하지 않고 4px 룰과 라벨로만 쓰는 구조라
+     본문은 어느 카드에서나 같은 조건으로 읽힌다. */
+  --canvas:#EDE4DD;          /* 페이지 바닥 · 상단 밴드 — 카드가 떠 보이게 눌러 둔다 */
+  --surface-card:#FFFCFA;    /* 카드 지면 — 거의 흰색 */
+  --surface-soft:#F6EEE9;    /* 푸터 */
+  --hairline:#DFD1C9;
+  --hairline-soft:#EBDFD9;
+
+  /* --- 상단 밴드 --- */
+  /* --- 상단·하단 밴드 — 라이트/다크 공통으로 어두운 브라운을 쓴다.
+         화면 위아래를 같은 색으로 묶어 가운데 내용 영역을 받쳐 준다. --- */
+  --band-1:#221B16;
+  --band-ink:#F7E9E1;
+  --band-mute:#BCA69C;
+  --spark:#FFD0C6;           /* 어두운 밴드에서는 블러시 톤 반짝임 */
+
+  /* 메시 그라데이션 (90533.jpg 구도 — 우상단 웜 / 좌상단 크림 / 좌하단 모브) */
+  --mesh-warm:#5C3B29;
+  --mesh-cream:#3A2F27;
+  --mesh-mauve:#413246;
+  --mesh-sage:#2E2F26;
+  --glass:#F7E9E1;           /* 어두운 밴드 위에 얹는 옅은 광막 */
+
+  /* --- 글자 --- */
+  --ink:#241F1D;             /* 순검정 대신 온기 있는 차콜 */
+  --body-strong:#332C29;
+  --body:#4A403C;
+  --muted:#7A6A64;
+  --muted-soft:#9C8C86;
+
+  --cta-bg:#241F1D;
+  --cta-bg-active:#3D3431;
+  --cta-fg:#FCF7F5;
+
+  /* --- 카드 구분색 ---
+     rule  = 카드 상단 4px 룰. 제니미감에서 추출한 파스텔을 그대로 쓴다 (글자가 없는 면)
+     accent= 라벨·좌측 룰처럼 글자가 걸리는 곳. 파스텔은 흰 지면에서 대비가 안 나오므로
+             같은 계열을 눌러 어둡게 만든 값을 쓴다. 흰 지면(#FFFCFA) 기준 실측 대비:
+               #3A4038 → 10.9:1 · #96593F → 5.4:1 · #8A4A55 → 6.4:1 · #556047 → 6.5:1 */
+  --rule-law:#4A4D46;        /* 딥 세이지 (추출 #60635C 계열) */
+  --rule-notice:#D6ADA3;     /* 로즈 토프 (추출값) */
+  --rule-prec:#E8C0B8;       /* 더스티 블러시 */
+  --rule-interp:#A9AEA2;     /* 라이트 세이지 */
+
+  --pill-bg:#241F1D;
+  --pill-fg:#FFFCFA;
+
+  --warning:#C98A3E;
+
+  /* --- Clay rounded --- */
+  --r-xs:6px; --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:24px; --r-pill:9999px;
+
+  /* --- Clay spacing --- */
+  --s-xxs:4px; --s-xs:8px; --s-sm:12px; --s-md:16px; --s-lg:24px; --s-xl:32px; --s-xxl:48px;
+  --s-section:48px;
+  --card-pad:24px;
+
+  /* --- type --- */
+  --font:"Pretendard Variable",Pretendard,Inter,
+         -apple-system,BlinkMacSystemFont,system-ui,
+         "Apple SD Gothic Neo","Noto Sans KR","Segoe UI",Roboto,
+         "Malgun Gothic","맑은 고딕",sans-serif;
+  --track-display:-0.04em;
+}
+
+html[data-theme="dark"]{
+  --canvas:#14100E;          /* 페이지 바닥 · 상단 밴드 */
+  --surface-card:#211A17;    /* 카드 지면 — 바닥보다 밝게 띄운다 */
+  --surface-soft:#191412;    /* 푸터 */
+  --hairline:color-mix(in srgb,#FFD0C6 18%,#211A17);
+  --hairline-soft:color-mix(in srgb,#FFD0C6 10%,#211A17);
+
+  /* 밴드는 라이트와 동일하게 유지한다 (:root 값 그대로).
+     다크에서는 카드 지면만 뒤집힌다. */
+
+  --ink:#F7E7E1;
+  --body-strong:#EBDAD4;
+  --body:#D8C6BF;
+  --muted:#A8938C;
+  --muted-soft:#8B7873;
+
+  --cta-bg:#F7E7E1;
+  --cta-bg-active:#DCC8C1;
+  --cta-fg:#171513;
+
+  --pill-bg:#F7E7E1;
+  --pill-fg:#15100E;
+}
+
+/* 어두운 지면에서는 액센트를 눌러 두면 안 보인다 — 같은 계열을 밝힌 값으로 뒤집는다 */
+html[data-theme="dark"] .fcard[data-kind="law"]{--accent:#AEB5A7}
+html[data-theme="dark"] .fcard[data-kind="notice"]{--accent:#DCA98F}
+html[data-theme="dark"] .fcard[data-kind="prec"]{--accent:#E3A8B2}
+html[data-theme="dark"] .fcard[data-kind="interp"]{--accent:#BAC3AE}
+html[data-theme="dark"] .hrcard{--accent:#D3AC9C;--hr-panel:#2A211D;--hr-box:#342922}
+html[data-theme="dark"] .notecard{--accent:#C3ADA6}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+/* .pill 등이 display 를 지정하면 브라우저 기본 [hidden]{display:none} 을 덮어쓴다.
+   hidden 속성이 항상 이기도록 명시한다. */
+[hidden]{display:none!important}
+body{
+  background:var(--canvas);
+  color:var(--body);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1280px;margin:0 auto;padding:0 var(--s-lg)}
+
+/* ---------- 상단 밴드 ----------
+   90533.jpg 의 문법을 가져왔다 — 흐릿한 메시 그라데이션 · 라틴 이탤릭 키커 ·
+   얇은 원형 아웃라인 · 반투명 유리 필.
+   색은 기존 톤(로즈·크림·무티드 모브·세이지)에서 고르고, 글자는 ink 를 유지해
+   가장 진한 지점에서도 대비가 9:1 아래로 내려가지 않게 했다. */
+.band{
+  position:relative;overflow:hidden;
+  color:var(--band-ink);
+  background-color:var(--band-1);
+  background-image:
+    radial-gradient(125% 95% at 88% -12%, var(--mesh-warm)  0%, transparent 62%),
+    radial-gradient( 95% 85% at  3%  16%, var(--mesh-cream) 0%, transparent 70%),
+    radial-gradient(115% 115% at 10% 120%, var(--mesh-mauve) 0%, transparent 66%),
+    radial-gradient( 85% 75% at 64% 112%, var(--mesh-sage)  0%, transparent 70%);
+  border-bottom:1px solid var(--hairline-soft);
+  padding:var(--s-xl) 0 var(--s-xl);
+}
+.band > *{position:relative;z-index:1}
+
+/* 참고 이미지의 "SEARCH" 자리. 한글은 강제 이탤릭이 조판을 망치므로
+   라틴 키커에만 이탤릭을 쓰고 제목은 정체로 둔다. */
+.kicker{
+  margin:0 0 10px;
+  font-size:12.5px;font-weight:700;font-style:italic;
+  letter-spacing:3.4px;text-transform:uppercase;
+  color:color-mix(in srgb,var(--band-ink) 58%,transparent);
+}
+
+/* 반짝반짝 — CSS 만으로 처리한다 (JS 관여 없음).
+   두 층이 서로 다른 주기로 깜빡여 규칙적으로 보이지 않게 한다. */
+.band::before,.band::after{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-repeat:no-repeat;
+}
+.band::before{
+  background-image:
+    radial-gradient(circle 2.5px at 11% 26%, var(--spark), transparent 100%),
+    radial-gradient(circle 1.5px at 24% 71%, var(--spark), transparent 100%),
+    radial-gradient(circle 2px   at 39% 18%, var(--spark), transparent 100%),
+    radial-gradient(circle 1px   at 52% 62%, var(--spark), transparent 100%),
+    radial-gradient(circle 2px   at 68% 31%, var(--spark), transparent 100%),
+    radial-gradient(circle 1.5px at 83% 76%, var(--spark), transparent 100%),
+    radial-gradient(circle 1px   at 94% 22%, var(--spark), transparent 100%);
+  animation:twinkle 4.2s ease-in-out infinite;
+}
+.band::after{
+  background-image:
+    radial-gradient(circle 1px   at 17% 54%, var(--spark), transparent 100%),
+    radial-gradient(circle 2px   at 33% 88%, var(--spark), transparent 100%),
+    radial-gradient(circle 1.5px at 46% 34%, var(--spark), transparent 100%),
+    radial-gradient(circle 2.5px at 61% 81%, var(--spark), transparent 100%),
+    radial-gradient(circle 1px   at 76% 47%, var(--spark), transparent 100%),
+    radial-gradient(circle 2px   at 89% 58%, var(--spark), transparent 100%);
+  animation:twinkle 6.7s ease-in-out infinite;
+  animation-delay:-2.3s;
+}
+@keyframes twinkle{
+  0%,100%{opacity:.22}
+  50%    {opacity:.95}
+}
+.brandrow{display:flex;align-items:center;justify-content:space-between;gap:var(--s-md);
+          margin-bottom:var(--s-lg)}
+.mark{font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+      color:var(--band-mute)}
+
+/* 중앙 정렬 블록 */
+.center{text-align:center}
+h1{
+  margin:0 0 var(--s-md);
+  font-size:40px;font-weight:500;line-height:1.15;letter-spacing:var(--track-display);
+  color:var(--band-ink);
+}
+
+/* 날짜 이동 */
+.datenav{display:flex;justify-content:center;align-items:center;gap:var(--s-xs);
+         margin-bottom:var(--s-md);flex-wrap:wrap}
+/* 얇은 원형 아웃라인 (참고 이미지의 카테고리 원) */
+.navbtn{
+  width:44px;height:44px;flex:none;
+  background:color-mix(in srgb,var(--glass) 24%,transparent);color:inherit;
+  border:1px solid color-mix(in srgb,var(--band-ink) 20%,transparent);
+  border-radius:var(--r-pill);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  font-family:inherit;font-size:14px;line-height:1;cursor:pointer;
+}
+.navbtn:hover{background:color-mix(in srgb,var(--glass) 62%,transparent);
+              border-color:color-mix(in srgb,var(--band-ink) 40%,transparent)}
+.navbtn:disabled{opacity:.3;cursor:not-allowed}
+.navdate{
+  min-width:196px;font-size:15px;font-weight:600;letter-spacing:0.2px;
+  padding:0 var(--s-sm);
+}
+.todaybtn{
+  height:44px;
+  background:color-mix(in srgb,var(--glass) 24%,transparent);color:inherit;
+  border:1px solid color-mix(in srgb,var(--band-ink) 20%,transparent);
+  border-radius:var(--r-pill);padding:0 var(--s-md);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  font-family:inherit;font-size:13.5px;font-weight:600;letter-spacing:0.2px;cursor:pointer;
+}
+.todaybtn:hover{background:color-mix(in srgb,var(--glass) 62%,transparent);
+                border-color:color-mix(in srgb,var(--band-ink) 40%,transparent)}
+.todaybtn:disabled{opacity:.3;cursor:not-allowed}
+
+.metarow{display:flex;flex-wrap:wrap;gap:var(--s-xs);justify-content:center;
+         margin-bottom:var(--s-md)}
+/* 반투명 유리 필 — 어두운 밴드 위 옅은 광막. 글자는 밝게 유지한다 */
+.pill{
+  display:inline-flex;align-items:center;gap:var(--s-xxs);
+  background:color-mix(in srgb,var(--glass) 13%,transparent);color:var(--band-ink);
+  border:1px solid color-mix(in srgb,var(--glass) 22%,transparent);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  font-size:13px;font-weight:500;line-height:1.4;
+  border-radius:var(--r-pill);padding:3px var(--s-sm);
+}
+.pill.strong{background:var(--band-ink);color:var(--band-1);font-weight:700;
+             border-color:var(--band-ink)}
+.pill.caution{background:transparent;
+              border-color:color-mix(in srgb,var(--glass) 18%,transparent);
+              color:var(--band-mute)}
+.pill.past{background:var(--warning);color:#FFFFFF;font-weight:600}
+
+/* 산업군 탭 — 필터가 적용되는 HR 이슈 카드 안에 둔다 */
+.tabs{display:flex;flex-wrap:wrap;gap:var(--s-xxs);margin-bottom:var(--s-md)}
+.tab{
+  background:transparent;color:var(--muted);
+  font-family:inherit;font-size:14px;font-weight:500;line-height:1.4;
+  border:1px solid var(--hairline);border-radius:var(--r-pill);
+  padding:var(--s-xs) var(--s-md);cursor:pointer;
+}
+.tab:hover{color:var(--ink);border-color:var(--ink)}
+.tab[aria-pressed="true"]{background:var(--cta-bg);color:var(--cta-fg);
+                          border-color:var(--cta-bg);font-weight:600}
+
+/* ---------- 산업별 HR 이슈 ---------- */
+/* HR 이슈는 흰 지면이 아니라 색 판 위에 올린다. 항목마다 테두리 박스를 두른다. */
+.hrcard{
+  margin-bottom:var(--s-lg);
+  --rule:#C5A297;--head-fg:#241F1D;--accent:#7E5A4E;
+  --hr-panel:#F7EEE8;      /* 카드 판 */
+  --hr-box:#EEDFD6;        /* 항목 박스 */
+  background:var(--hr-panel);
+}
+.hrcard .hrnote{margin-top:calc(-1 * var(--s-xs))}
+
+.hritems{display:flex;flex-direction:column;gap:var(--s-sm)}
+/* 공용 카드 규칙(.fcard,.hrcard,.notecard)이 이 블록보다 뒤에 오므로
+   판 배경은 선택자를 한 단계 더 좁혀 눌러 준다. */
+section.hrcard{background:var(--hr-panel)}
+.hrcard .hritems .item{
+  margin:0;padding:var(--s-sm) var(--s-md);
+  background:var(--hr-box);
+  border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);
+  border-radius:var(--r-sm);
+}
+.hrcard .hritems .ind{border-color:color-mix(in srgb,var(--accent) 30%,transparent)}
+.hrnote{margin:0 0 var(--s-md);font-size:13.5px;line-height:1.65;color:var(--muted)}
+.hrnote strong{color:var(--ink)}
+.hritems .inds{display:flex;flex-wrap:wrap;gap:var(--s-xxs);margin-left:auto}
+/* 산업군 배지는 산업마다 색을 달리해 한눈에 갈리게 한다 */
+.ind{
+  background:color-mix(in srgb,var(--ic) 15%,transparent);
+  color:var(--ic);
+  border:1px solid color-mix(in srgb,var(--ic) 34%,transparent);
+  font-size:10.5px;font-weight:700;letter-spacing:0.6px;line-height:1.5;
+  border-radius:3px;padding:0 6px;
+}
+.ind[data-ind="금융"]{--ic:#3F5A72}
+.ind[data-ind="제조"]{--ic:#8A5A3C}
+.ind[data-ind="IT"]  {--ic:#6B4A6E}
+.ind[data-ind="유통"]{--ic:#4E6047}
+html[data-theme="dark"] .ind[data-ind="금융"]{--ic:#9BB6CC}
+html[data-theme="dark"] .ind[data-ind="제조"]{--ic:#D8A583}
+html[data-theme="dark"] .ind[data-ind="IT"]  {--ic:#C4A3C7}
+html[data-theme="dark"] .ind[data-ind="유통"]{--ic:#A8BC9C}
+/* 정렬 근거 배지 — 왜 이 항목이 위에 있는지 */
+.why{
+  background:var(--accent);color:var(--surface-card);
+  font-size:10.5px;font-weight:700;letter-spacing:0.4px;line-height:1.5;
+  border-radius:3px;padding:0 6px;
+}
+.aitag{
+  flex:none;background:transparent;color:var(--warning);
+  border:1px solid color-mix(in srgb,var(--warning) 40%,transparent);
+  font-size:10.5px;font-weight:700;letter-spacing:1px;line-height:1.5;
+  text-transform:uppercase;
+  border-radius:3px;padding:0 5px;
+}
+
+.btn{
+  font-family:inherit;font-size:14px;font-weight:600;line-height:1;
+  border-radius:var(--r-md);padding:var(--s-sm) 18px;height:42px;cursor:pointer;
+}
+.btn-secondary{background:transparent;color:var(--band-ink);
+               border:1px solid color-mix(in srgb,var(--band-ink) 26%,transparent)}
+.btn-secondary:hover{background:color-mix(in srgb,var(--band-ink) 8%,transparent)}
+
+/* ---------- 예시 데이터 경고 (태스크 3에서 제거) ---------- */
+main{padding-top:var(--s-lg);padding-bottom:var(--s-section)}
+.samplebar{
+  position:sticky;top:0;z-index:5;
+  background:var(--canvas);color:var(--warning);
+  border:1px solid color-mix(in srgb,var(--warning) 45%,transparent);
+  border-radius:var(--r-md);padding:var(--s-sm) var(--s-md);
+  margin:0 0 var(--s-lg);font-size:14px;font-weight:600;line-height:1.55;
+}
+
+/* ---------- 2×2 카드 ---------- */
+.grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:var(--s-lg);margin-bottom:var(--s-lg);align-items:start;
+}
+/* 색은 카드 "헤더 띠"가 맡는다 — 섹션 구분은 색이 하고, 본문은 흰 지면에 남긴다.
+   면 전체를 칠하던 때의 무거움과, 선만 남겼을 때의 구분 없음 사이를 잡은 것이다. */
+.fcard,.hrcard,.notecard{
+  background:var(--surface-card);color:var(--body);
+  border:1px solid var(--hairline);
+  border-radius:var(--r-md);
+  padding:0 var(--card-pad) var(--card-pad);
+  overflow:hidden;                    /* 헤더 띠 모서리를 카드 라운드로 자른다 */
+}
+.fcard[data-kind="law"]   {--rule:var(--rule-law);   --head-fg:#FFFCFA;--accent:#3A4038}
+.fcard[data-kind="notice"]{--rule:var(--rule-notice);--head-fg:#241F1D;--accent:#96593F}
+.fcard[data-kind="prec"]  {--rule:var(--rule-prec);  --head-fg:#241F1D;--accent:#8A4A55}
+.fcard[data-kind="interp"]{--rule:var(--rule-interp);--head-fg:#241F1D;--accent:#556047}
+
+/* 카드 헤더 띠 — 카드 폭 전체를 채워 섹션이 한눈에 갈린다 */
+.fhead{
+  display:flex;align-items:center;gap:var(--s-sm);
+  margin:0 calc(-1 * var(--card-pad)) var(--s-md);
+  padding:11px var(--card-pad);
+  background:var(--rule);color:var(--head-fg);
+}
+.fhead h2{
+  margin:0;font-size:14px;font-weight:700;line-height:1.4;
+  letter-spacing:1.4px;text-transform:uppercase;
+  color:inherit;
+}
+.fcount{margin-left:auto;font-size:12px;font-weight:600;letter-spacing:0.4px;
+        opacity:.78;white-space:nowrap}
+
+/* 카드별 접기 — 아침에 안 볼 영역은 개별로 접어 둘 수 있다 */
+.foldbtn{
+  flex:none;width:28px;height:28px;
+  background:transparent;color:inherit;
+  border:1px solid color-mix(in srgb,currentColor 26%,transparent);
+  border-radius:var(--r-pill);
+  font-family:inherit;font-size:11px;line-height:1;cursor:pointer;
+}
+.foldbtn:hover{background:color-mix(in srgb,currentColor 10%,transparent)}
+.collapsed .fhead{margin-bottom:0}
+.fcard.collapsed .items,
+.hrcard.collapsed .items,
+.hrcard.collapsed .tabs,
+.hrcard.collapsed .hrnote,
+.notecard.collapsed .notes,
+.notecard.collapsed .noteform{display:none}
+
+/* ---------- 항목 — 접속만으로 내용이 읽히는 것이 핵심 ---------- */
+.items{list-style:none;margin:0;padding:0}
+.item{padding:var(--s-md) 0;border-top:1px solid var(--hairline-soft)}
+.item:first-child{border-top:0;padding-top:0}
+.item:last-child{padding-bottom:0}
+
+.ihead{display:flex;align-items:baseline;flex-wrap:wrap;gap:var(--s-xs);margin-bottom:6px}
+.tag{
+  flex:none;background:transparent;color:var(--accent);
+  font-size:10.5px;font-weight:700;letter-spacing:1.4px;line-height:1.5;
+  text-transform:uppercase;
+  border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);
+  border-radius:3px;padding:0 5px;
+}
+.ititle{margin:0;font-size:13.5px;font-weight:500;line-height:1.45;
+        color:var(--muted)}
+/* 식별번호 — 조문 · 고시번호 · 사건번호 · 안건번호.
+   담당자가 원문을 특정하려면 이게 있어야 한다. */
+.iref{
+  flex:none;font-size:12px;font-weight:700;line-height:1.5;
+  letter-spacing:0.2px;font-variant-numeric:tabular-nums;
+  color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 9%,transparent);
+  border-radius:3px;padding:0 5px;
+}
+/* NEW — 화면에서 가장 먼저 걸려야 하는 표시. 노란 박스로 띄운다.
+   라이트·다크 공통 고정값 (노랑 위 ink = 대비 11:1). */
+.new{
+  flex:none;background:#F5C445;color:#241F1D;
+  font-size:11px;font-weight:800;letter-spacing:1.4px;line-height:1.6;
+  border-radius:3px;padding:0 7px;
+  box-shadow:0 1px 0 color-mix(in srgb,#241F1D 16%,transparent);
+}
+
+/* 요지 — 문장형으로 한눈에 읽힌다. 숫자는 타일로 떼지 않고 문장 안에 둔다.
+   결론 문장은 별도 판 위에 올려 카드 배경에 묻히지 않게 한다.
+   판 색은 currentColor 파생값이라 밝은 카드·어두운 카드 모두에서 성립한다. */
+/* 결론 문장이 이 화면의 주인공이다. 박스를 두르지 않고 크기·굵기·색으로만 세운다.
+   흰 지면이라 박스가 없어도 충분히 앞으로 나온다. */
+.ipoint{
+  margin:0;
+  font-size:18px;font-weight:600;line-height:1.55;letter-spacing:-0.015em;
+  color:var(--ink);
+  font-variant-numeric:tabular-nums;
+  text-wrap:pretty;
+}
+/* 수치 강조는 주요논지에만 건다. 아래 세부내용까지 굵게 하면 강조가 흐려진다 */
+.ipoint .hl{font-weight:800}
+.isum{
+  margin:6px 0 0;font-size:14.5px;font-weight:400;line-height:1.72;
+  color:var(--muted);
+  font-variant-numeric:tabular-nums;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.item.open .isum{-webkit-line-clamp:unset;overflow:visible}
+
+/* 펼친 상세 — 카드 배경에 묻히지 않게 별도 판을 깐다 */
+/* 펼친 원문(주요내용 · 부칙 · 판결요지 등) — 카드 섹션 색을 옅게 깐 박스 */
+.idetail{
+  margin-top:var(--s-sm);
+  padding:var(--s-sm) var(--s-md);
+  background:color-mix(in srgb,var(--accent) 9%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);
+  border-radius:var(--r-sm);
+}
+.idetail dl{margin:0}
+/* 라벨과 본문의 폰트를 같게 두고 굵기·색으로만 구분한다.
+   한글에 대문자 변환·넓은 자간을 쓰면 늘어져 보인다. */
+.idetail dt{
+  margin-top:var(--s-sm);
+  font-size:14.5px;font-weight:700;line-height:1.72;letter-spacing:0;
+  color:var(--accent);
+}
+.idetail dt:first-child{margin-top:0}
+.idetail dd{margin:1px 0 0;font-size:14.5px;font-weight:400;line-height:1.72;
+            letter-spacing:0;color:var(--body)}
+
+.imeta{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-xs);margin-top:10px;
+  font-size:12px;font-weight:500;letter-spacing:0.3px;color:var(--muted-soft);
+}
+.imeta .sep{opacity:.5}
+/* 자세히 · 원문 — 카드 섹션 색을 옅게 깐 박스 버튼.
+   글자는 액센트 원색이라 옅은 배경 위에서도 대비가 유지된다. */
+.chip{
+  display:inline-flex;align-items:center;
+  background:color-mix(in srgb,var(--accent) 11%,transparent);
+  color:var(--accent);
+  border:1px solid color-mix(in srgb,var(--accent) 26%,transparent);
+  border-radius:var(--r-xs);padding:3px 10px;
+  font-family:inherit;font-size:12px;font-weight:700;letter-spacing:0.3px;line-height:1.5;
+  cursor:pointer;text-decoration:none;
+}
+.chip:hover{background:color-mix(in srgb,var(--accent) 20%,transparent);
+            border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.empty{font-size:14px;color:var(--muted);padding:var(--s-sm) 0}
+
+/* ---------- 담당자 노트 ---------- */
+.notecard{--rule:#6E5D57;--head-fg:#FFFCFA;--accent:#5C4A44}
+/* 노트 작성 */
+.noteform{display:flex;flex-direction:column;gap:var(--s-xs);margin-bottom:var(--s-md)}
+.ninput,.ntextarea{
+  width:100%;font-family:inherit;font-size:15px;line-height:1.6;color:var(--ink);
+  background:var(--canvas);
+  border:1px solid var(--hairline);border-radius:var(--r-md);
+  padding:10px var(--s-sm);
+}
+.ninput{height:42px;padding-top:0;padding-bottom:0}
+.ntextarea{resize:vertical;min-height:76px}
+.ninput:focus,.ntextarea:focus{outline:0;border-color:var(--ink);border-width:2px;padding:9px 11px}
+.ninput:focus{padding-top:0;padding-bottom:0}
+.noteactions{display:flex;align-items:center;justify-content:space-between;gap:var(--s-sm);
+             flex-wrap:wrap}
+.nhint{font-size:13px;color:var(--muted)}
+.nhint.err{color:var(--warning);font-weight:600}
+.btn-primary{background:var(--cta-bg);color:var(--cta-fg);border:0}
+.btn-primary:hover{background:var(--cta-bg-active)}
+
+.notes{list-style:none;margin:0;padding:0}
+.note{padding:var(--s-md) 0;border-top:1px solid var(--hairline)}
+.note:first-child{border-top:0;padding-top:0}
+.note:last-child{padding-bottom:0}
+.ntext{font-size:16px;line-height:1.7;color:var(--body-strong);white-space:pre-wrap}
+.nmeta{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-xs);
+       margin-top:var(--s-xxs);font-size:13.5px;color:var(--muted)}
+.nsample{
+  background:color-mix(in srgb,var(--warning) 16%,transparent);color:var(--warning);
+  font-size:11px;font-weight:700;letter-spacing:1.2px;
+  border-radius:var(--r-pill);padding:1px var(--s-xs);
+}
+.ndel{
+  background:transparent;color:var(--muted);
+  border:1px solid var(--hairline);border-radius:var(--r-pill);
+  padding:1px 10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;
+}
+.ndel:hover{color:var(--ink);border-color:var(--ink)}
+
+/* ---------- 푸터 ---------- */
+/* 하단도 상단과 같은 브라운 밴드 — 위아래를 같은 색으로 묶는다.
+   메시 구도는 상단을 좌우로 뒤집어 대칭을 만든다. */
+.foot{
+  position:relative;overflow:hidden;
+  color:var(--band-ink);
+  background-color:var(--band-1);
+  background-image:
+    radial-gradient(125% 95% at 12% -12%, var(--mesh-warm)  0%, transparent 62%),
+    radial-gradient( 95% 85% at 97%  16%, var(--mesh-cream) 0%, transparent 70%),
+    radial-gradient(115% 115% at 90% 120%, var(--mesh-mauve) 0%, transparent 66%),
+    radial-gradient( 85% 75% at 36% 112%, var(--mesh-sage)  0%, transparent 70%);
+}
+.foot .inner{position:relative;z-index:1;
+             max-width:1280px;margin:0 auto;padding:var(--s-xl) var(--s-lg);
+             font-size:13.5px;line-height:1.7;color:var(--band-mute)}
+.foot strong{color:var(--band-ink)}
+
+/* ---------- 반응형 ---------- */
+@media (max-width:880px){
+  .grid{grid-template-columns:minmax(0,1fr)}
+  h1{font-size:30px;letter-spacing:-0.02em}
+  :root{--s-section:32px}
+}
+@media (max-width:520px){
+  .brandrow{flex-direction:column;align-items:stretch;gap:var(--s-sm)}
+  .btn{width:100%}
+  .navdate{min-width:0;flex:1 1 100%;order:-1;margin-bottom:var(--s-xs)}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+  /* 반짝임은 끄고 은은한 정지 상태로 남긴다 */
+  .band::before,.band::after{opacity:.35}
+}
+</style>
+</head>
+<body>
+
+<header class="band">
+  <div class="wrap">
+    <div class="brandrow">
+      <span class="mark">인사노무 법령 브리핑</span>
+      <button type="button" id="themeBtn" class="btn btn-secondary" aria-pressed="false">다크 모드</button>
+    </div>
+
+    <div class="center">
+      <p class="kicker">Labor Law Briefing</p>
+      <h1 id="hero">노동법 이슈 확인</h1>
+
+      <div class="datenav">
+        <button type="button" class="navbtn" id="prevDay" aria-label="이전 날">◀</button>
+        <span class="navdate" id="navDate"></span>
+        <button type="button" class="navbtn" id="nextDay" aria-label="다음 날">▶</button>
+        <button type="button" class="todaybtn" id="todayBtn">오늘로</button>
+        <button type="button" class="todaybtn" id="expandBtn" aria-pressed="false">전체 펼치기</button>
+      </div>
+
+      <div class="metarow">
+        <span class="pill past" id="pastPill" hidden>지난 기록 보는 중</span>
+        <span class="pill strong" id="newPill">새 항목 —</span>
+        <span class="pill" id="lastRun">마지막 수집 — 연동 전</span>
+        <span class="pill caution">법률 자문이 아닙니다 · 판단 근거는 원문을 확인하세요</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="samplebar" id="sampleBar">
+    <strong>주요 판례 3건</strong> · <strong>2026년 최저임금 고시</strong> · <strong>산업별 HR 이슈</strong>는
+    실제 확인한 자료입니다(식별번호·출처 링크 포함). 나머지 항목은 아직 화면 확인용 예시로,
+    식별번호가 없는 항목이 그것입니다 — 업무에 사용하지 마세요.
+  </p>
+
+  <section class="grid" id="cards">
+    <article class="fcard" data-kind="law">
+      <div class="fhead"><h2>법령 제·개정</h2><span class="fcount"></span><button type="button" class="foldbtn" aria-expanded="true">&#9662;</button></div>
+      <ul class="items"></ul>
+    </article>
+    <article class="fcard" data-kind="notice">
+      <div class="fhead"><h2>정부 주요 고시</h2><span class="fcount"></span><button type="button" class="foldbtn" aria-expanded="true">&#9662;</button></div>
+      <ul class="items"></ul>
+    </article>
+    <article class="fcard" data-kind="prec">
+      <div class="fhead"><h2>주요 판례</h2><span class="fcount"></span><button type="button" class="foldbtn" aria-expanded="true">&#9662;</button></div>
+      <ul class="items"></ul>
+    </article>
+    <article class="fcard" data-kind="interp">
+      <div class="fhead"><h2>주요 행정해석</h2><span class="fcount"></span><button type="button" class="foldbtn" aria-expanded="true">&#9662;</button></div>
+      <ul class="items"></ul>
+    </article>
+  </section>
+
+  <section class="hrcard" id="hrCard">
+    <div class="fhead">
+      <h2>산업별 HR 이슈</h2>
+      <span class="fcount"></span>
+      <button type="button" class="foldbtn" aria-expanded="true">&#9662;</button>
+    </div>
+    <p class="hrnote">
+      법령·판례와 달리 <strong>요약을 생성한 내용</strong>이라 <strong>AI 요약</strong> 라벨을 붙였습니다.
+      각 항목의 <strong>출처 보기</strong>는 요약의 근거가 된 그 문서로 바로 연결됩니다.
+      판단 전에 출처를 확인하세요.
+    </p>
+
+    <div class="tabs" id="tabs" role="group" aria-label="산업군 필터">
+      <button type="button" class="tab" data-ind="금융" aria-pressed="true">금융</button>
+      <button type="button" class="tab" data-ind="제조" aria-pressed="false">제조</button>
+      <button type="button" class="tab" data-ind="IT" aria-pressed="false">IT</button>
+      <button type="button" class="tab" data-ind="유통" aria-pressed="false">유통</button>
+    </div>
+
+    <ul class="items hritems" id="hrList"></ul>
+  </section>
+
+  <section class="notecard" id="noteCard">
+    <div class="fhead"><h2>담당자 노트</h2><span class="fcount"></span><button type="button" class="foldbtn" aria-expanded="true">&#9662;</button></div>
+
+    <form class="noteform" id="noteForm">
+      <input type="text" id="noteBy" class="ninput" maxlength="30"
+             placeholder="작성자 (예: 김민서 / 인사기획)" autocomplete="off">
+      <textarea id="noteText" class="ntextarea" rows="3"
+                placeholder="팀에 전할 코멘트를 적어주세요. Ctrl(⌘) + Enter 로 저장됩니다."></textarea>
+      <div class="noteactions">
+        <span class="nhint" id="noteHint">Ctrl(⌘) + Enter 로 저장</span>
+        <button type="submit" class="btn btn-primary">노트 저장</button>
+      </div>
+    </form>
+
+    <ul class="notes" id="noteList"></ul>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="inner">
+    <strong>이 화면은 법률 자문이 아닙니다.</strong>
+    요지는 법제처·법원이 제공한 원문 필드(판시사항·판결요지·질의요지·회답 등)를 그대로 보여줍니다.
+    생성 요약이 아니지만, 최종 판단은 원문과 전문가 확인을 거쳐야 합니다.
+    출처는 법제처 국가법령정보 공동활용 · 고용노동부입니다.
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* -----------------------------------------------------------
+   예시 데이터. 태스크 3에서 Supabase 조회 결과로 통째로 교체한다.
+   실제 법령 내용이 아니라 화면 확인용 자리표시자다.
+
+   point   = 결론 문장. 금액·요율·한도 같은 수치를 문장 안에 넣는다
+             (수치를 타일로 떼어내면 정보가 아니라 장식이 된다).
+             판례 → 판시사항을 한 문장으로 · 해석 → 회답의 결론
+   sum     = 배경 문장 (2줄까지 보이고 나머지는 접힘)
+   detail  = 펼쳤을 때 나오는 원문 필드들 (판결요지·회답·이유·참조조문 등)
+   ----------------------------------------------------------- */
+var SAMPLE = {
+  law:[
+    {tag:"개정", title:"근로기준법 시행령 일부개정", ref:"제53조", at:"2026-08-12", src:"법제처",
+     eff:"2026-11-01",
+     point:"연장근로 한도를 주 12시간으로 산정하도록 명확히 하고, 보상휴가는 근로자대표와 서면 합의를 거치도록 했다.",
+     sum:"산정 단위를 두고 해석이 갈렸던 부분을 시행령에 명시했다. 상시 5명 이상 사업장에 적용되며 2026년 11월 1일 시행된다.",
+     detail:[["주요내용","제6장의 연장근로 산정 기준을 주 단위로 명시하고, 보상휴가 부여 시 근로자대표와의 서면 합의 절차를 신설했다."],
+             ["부칙","공포 후 3개월이 경과한 날부터 시행한다."]]},
+    {tag:"공포", title:"산업안전보건법 일부개정법률 공포", ref:"제63조", at:"2026-08-07", src:"법제처",
+     eff:"2027-01-01",
+     point:"도급인의 안전조치 의무가 관계수급인 근로자까지 확대되고, 위반 시 과태료 상한이 5,000만원으로 올랐다.",
+     sum:"안전보건관리체계 구축 의무 대상도 상시 50명 이상 사업장으로 넓어졌다.",
+     detail:[["주요내용","도급 사업에서 관계수급인 근로자에 대한 안전조치 의무를 명시하고, 위반 시 과태료 기준을 상향했다."]]},
+    {tag:"개정", title:"최저임금법 시행령 일부개정", ref:"제6조", at:"2026-07-30", src:"법제처",
+     eff:"2027-01-01",
+     point:"상여금·복리후생비의 최저임금 산입 제외 비율이 0%가 되어 전액 산입된다.",
+     sum:"단계적으로 축소돼 온 산입 제외 비율이 종료되는 구조다.",
+     detail:[["주요내용","상여금·복리후생비의 산입 비율 산정 방식을 조정했다."]]}
+  ],
+  notice:[
+    /* 이 한 건은 실제 확인분이다 (2026-08-13). 고시번호·금액·상세링크 모두 검증했다. */
+    {tag:"고시", title:"2026년 적용 최저임금 고시",
+     ref:"고용노동부 고시 제2025-47호", at:"2025-08-05", src:"고용노동부",
+     eff:"2026-01-01",
+     url:"https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000262710",
+     point:"2026년 최저임금은 시간급 10,320원으로, 2025년보다 290원(2.9%) 올랐다. 주 40시간 기준 월급은 209시간을 적용해 2,156,880원이다.",
+     sum:"2026년 1월 1일부터 12월 31일까지 적용되며, 모든 사업장에서 시간급 10,320원 이상을 지급해야 한다.",
+     detail:[["적용기간","2026년 1월 1일 ~ 2026년 12월 31일"],
+             ["월 환산 기준","시간급 10,320원 × 월 209시간 = 2,156,880원"],
+             ["실무 확인","급여 테이블 · 최저임금 미달자 점검 · 수습 감액 적용 여부"]]},
+    /* 아래 두 건은 아직 예시다 — 고시번호를 확인하지 못해 슬롯을 비웠다.
+       지어낸 번호를 넣으면 실제 인용처럼 보이고 링크도 빈 결과로 떨어진다. */
+    {tag:"고시", title:"장애인 의무고용률 고시", at:"2026-08-01", src:"고용노동부",
+     eff:"2027-01-01",
+     point:"민간 의무고용률은 3.1%, 부담기초액은 미달 1인당 월 1,320,000원이다.",
+     sum:"상시 50명 이상 사업주가 대상이며, 부담금은 미달 인원에 월 단위로 산정된다.",
+     detail:[["실무 확인","상시근로자 수 산정 기준일과 부담금 신고 일정"]]},
+    {tag:"고시", title:"산업재해보상보험 요율 고시", at:"2026-07-24", src:"고용노동부",
+     eff:"2027-01-01",
+     point:"업종 평균 요율은 1.53%, 출퇴근재해 요율은 전 업종 0.10%다.",
+     sum:"업종별 요율이 조정됐으므로 사업장 업종 코드와 적용 요율을 다시 대조해야 한다.",
+     detail:[["실무 확인","사업장 업종 코드와 적용 요율 대조"]]}
+  ],
+  /* 판례는 실제 사건번호를 쓴다 — 사건번호로 검색해야 그 판례 하나로 정확히 떨어진다.
+     지어낸 번호를 넣으면 링크가 빈 검색 결과로 떨어져 쓸모가 없다. (2026-08-13 확인) */
+  prec:[
+    {tag:"전합", title:"통상임금 판단기준 변경 — 고정성 요건 제외",
+     ref:"2020다247190", at:"2024-12-19", src:"대법원 전원합의체",
+     point:"재직조건·근무일수 조건이 붙은 상여금도 통상임금에 해당한다. 통상임금 판단에서 '고정성'을 빼고 소정근로 대가성·정기성·일률성만으로 본다.",
+     sum:"2013년 12월 2012다89399 전원합의체 판결 이후 약 11년 만에 판단기준이 바뀌었다. 임금체계 전반에 영향을 준다.",
+     detail:[["판시사항","특정 시점 재직자에게만 지급하는 조건, 일정 근무일수 충족을 요구하는 조건이 붙은 임금의 통상임금성이 문제된 사건"],
+             ["변경된 기준","고정성을 개념 징표에서 제외하고 소정근로 대가성·정기성·일률성으로 판단한다"],
+             ["종전 판결","대법원 2013. 12. 18. 선고 2012다89399 전원합의체 판결"]]},
+    {tag:"판결", title:"도급의 실체가 인정된 사례 — 금호타이어",
+     ref:"2015다32905", at:"2017-12-22", src:"대법원",
+     point:"하청이 별도 법인으로 사업자등록·4대보험 가입을 하고 독자 취업규칙에 따라 근태관리권을 행사했다면 사업주로서의 실체가 인정된다.",
+     sum:"도급이냐 파견이냐는 계약서 문구가 아니라 하청의 독립성 실태로 갈린다.",
+     detail:[["실체 인정 요소","원청과 별도 회사 설립 및 사업자등록 · 4대보험 가입 · 독자적 취업규칙에 근거한 근태관리권 행사"]]},
+    {tag:"판결", title:"불법파견이 인정된 사례 — 현대미포조선",
+     ref:"2005다75088", at:"2008-07-10", src:"대법원",
+     point:"하청이 약 25년간 원청 업무만 도급받아 수행하면서 업무수행의 독자성과 사업경영의 독립성을 갖추지 못했다면 불법파견이다.",
+     sum:"위 금호타이어 사건과 대조되는 결론이다. 두 판례를 함께 봐야 경계가 보인다.",
+     detail:[["판단 요소","약 25년간 원청 업무만 수행 · 업무수행의 독자성 없음 · 사업경영의 독립성 없음"]]}
+  ],
+  interp:[
+    {tag:"해석", title:"육아휴직 분할 사용 관련 해석", at:"2026-08-10", src:"고용노동부",
+     point:"육아휴직 분할 사용은 기간이 연속되지 않아도 각 기간을 1회로 산정한다.",
+     sum:"실제 개시·종료를 기준으로 세므로, 중간에 복직했다면 별개 횟수로 본다.",
+     detail:[["질의요지","육아휴직을 나누어 사용할 때 횟수를 어떻게 산정하는지"],
+             ["회답","실제 개시·종료를 기준으로 각 기간을 1회로 산정한다."],
+             ["관련법령","남녀고용평등과 일·가정 양립 지원에 관한 법률 제19조"]]},
+    {tag:"해석", title:"연차유급휴가 산정 기준 해석", at:"2026-08-04", src:"고용노동부",
+     point:"연차 출근율을 산정할 때 육아휴직 기간은 출근한 것으로 본다.",
+     sum:"법령상 보호되는 휴직은 결근으로 처리하지 않는다.",
+     detail:[["회답","법령상 보호되는 휴직 기간은 출근한 것으로 보아 산정한다."],
+             ["관련법령","근로기준법 제60조"]]},
+    {tag:"해석", title:"포괄임금제 유효성 관련 해석", at:"2026-07-26", src:"고용노동부",
+     point:"법정수당에 미달하는 포괄임금 약정은 그 차액을 지급해야 한다.",
+     sum:"약정 금액이 법정 기준에 못 미치는 부분은 무효로 본다.",
+     detail:[["회답","약정 금액이 법정 기준에 미달하는 부분은 무효이며 차액을 지급해야 한다."],
+             ["관련법령","근로기준법 제56조"]]}
+  ],
+  /* 산업별 HR 이슈 — 아래 항목은 실제 출처를 읽고 요약한 것이다 (2026-08-13 확인).
+     법령 카드처럼 원문 요지 필드가 오는 게 아니라 내가 요약하므로
+     AI 요약 라벨을 붙이고, url 로 "요약한 그 출처"에 바로 연결한다.
+       at  = 확인해서 브리핑에 올린 날짜
+       eff = 시행일 (출처에 명시된 것만 넣는다) */
+  /* near  = 우리 회사(증권사)와의 근접도  3 증권·자산운용 직접 / 2 금융지주·핀테크 / 1 금융 전반 / 0 무관
+     risk  = 리스크 강도                 3 소송·제재·파업 / 2 갈등·입법 / 1 실태·통계
+     scale = 기업 규모                   3 업계 상위·대기업 / 2 중견 / 1 일반
+     상단 정렬 = near*4 + risk*2 + scale (renderHr 에서 계산) */
+  hr:[
+    {title:"미래에셋증권 노조, 경영성과급 지급 소송 예고",
+     at:"2026-08-13", src:"뉴스토마토", inds:["금융"],
+     near:3, risk:3, scale:3,
+     url:"http://www.newstomato.com/ReadNews.aspx?no=1307229",
+     point:"노조가 8월 15~21일 소송 위임장을 접수하고 23일 서울중앙지방법원에 경영성과급 지급 청구 소송을 제기할 예정이다. WM부문 성과보상제도 변경에는 효력정지 가처분도 신청한다.",
+     sum:"대우증권 시절 체결한 16년 전 노사 합의를 근거로, 지난해 실적이 지급 기준을 충족했는데도 회사가 지급을 거부했다는 주장이다. 국내 증권사 최초로 상반기 순이익 2조원 돌파가 유력한 상황에서 갈등이 격화됐다."},
+
+    {title:"한국투자증권 노사 갈등 — 사상 최대 실적과 보상의 괴리",
+     at:"2026-08-13", src:"경인방송", inds:["금융"],
+     near:3, risk:2, scale:3,
+     url:"https://news.ifm.kr/news/articleView.html?idxno=471249",
+     point:"지난해 순이익 2조원대 사상 최대 실적을 냈는데 보상이 따라오지 않았다는 것이 갈등의 핵심이다. 증권가 전반이 긴장하고 있다.",
+     sum:"주식 거래대금 증가, 투자심리 회복, 자산관리·IB 부문 실적 개선이 실적을 끌어올렸다. 금융권은 역대 최대 실적과 물가 상승률을 근거로 임금 인상과 성과급 확대를 동시에 압박하는 분위기다."},
+
+    {title:"카카오페이 과징금 129.8억 — 임직원 5명 징계",
+     at:"2026-08-13", src:"아시아경제", inds:["금융"],
+     near:2, risk:3, scale:3,
+     url:"https://www.asiae.co.kr/article/2026070917002117616",
+     point:"고객 동의 없이 개인신용정보를 제3자에게 제공한 건으로 과징금 129억7,600만원과 과태료 4,800만원, 기관경고를 통보받았다. 임원 2명은 주의적 경고, 퇴직 직원 3명은 감봉 2명·견책 1명이다.",
+     sum:"정보위탁 관련 내부통제 구축 의무를 소홀히 했다는 판단이다. 금융·정보보호 당국에 경찰 수사까지 겹쳐 삼중 제재 가능성이 거론된다. 내부통제 위반이 임직원 개인 징계로 이어진 사례라 인사 실무에 직접 걸린다."},
+
+    {title:"금융노조 9월 4일 총파업 예고 — 주 4.5일제가 최대 쟁점",
+     at:"2026-08-13", src:"EBN", inds:["금융"],
+     near:1, risk:3, scale:3,
+     url:"https://www.ebn.co.kr/news/articleView.html?idxno=1720010",
+     point:"임금 인상률이 노조 6% 대 사용자 2.5%로 갈렸다. 노조는 임금 삭감 없는 주 4.5일제와 정년 연장·임금피크제 폐지를 함께 요구하고 있다.",
+     sum:"4월부터 18차례 교섭했으나 6월 산별중앙교섭이 결렬되고 중앙노동위원회 조정도 중지됐다. 금융기관 지방 이전 저지와 계열사 간 복지 형평성도 쟁점에 올랐다. 사용자 측은 인건비 부담과 점포 운영 효율성 저하를 이유로 수용이 어렵다는 입장이다."},
+
+    {title:"자동차·조선에 번진 'N% 성과급' 요구",
+     at:"2026-08-13", src:"파이낸셜뉴스", inds:["제조"],
+     near:0, risk:2, scale:3,
+     url:"https://www.fnnews.com/news/202605211812266005",
+     point:"영업이익의 일정 비율을 성과급으로 고정 지급하라는 요구가 자동차·조선·IT·통신 업종으로 확산되고 있다.",
+     sum:"현대차 노조는 순이익의 30% 성과급 지급과 상여금 750%→800% 인상을 요구했다. AI·로봇 도입 이후의 고용 안정도 올해 핵심 쟁점으로 올라왔다."},
+
+    {title:"게임업계 포괄임금제 폐지가 대세로",
+     at:"2026-08-13", src:"비즈니스포스트", inds:["IT"],
+     url:"https://www.businesspost.co.kr/BP?command=article_view&num=418056",
+     point:"라이온하트스튜디오가 2026년 1월부터 비포괄임금제를 전면 도입해 실제 근무시간에 따라 수당을 지급한다. 업계 전반으로 확산되는 흐름이다.",
+     sum:"고용노동부는 2026년 5월 포괄임금 오남용 방지 지침 시행 두 달을 맞아 업계 간담회를 열고 근로시간 기록·관리 강화와 미지급 수당 지급 원칙을 강조했다. 유사 포괄임금을 유지하는 곳은 별도로 주목받고 있다."},
+
+    {title:"새벽배송 시간 제한 생활물류법 발의 — 현장 반발",
+     at:"2026-08-13", src:"인사이트", inds:["유통"],
+     url:"https://www.insight.co.kr/news/566323",
+     point:"새벽배송 시간을 제한하는 생활물류법 개정안이 발의되면서 유통·물류 현장에서 반발이 잇따르고 있다.",
+     sum:"노사 협의와 사회적 타협을 건너뛰고 입법으로 규제를 강행한다는 비판이 제기됐다. 배송 시간대가 바뀌면 교대 편성과 심야 인력 운영을 다시 짜야 한다."},
+
+    {title:"조선업 맞춤형 외국인력, 강제노동 논란",
+     at:"2026-08-13", src:"헤럴드경제", inds:["제조"],
+     url:"https://biz.heraldcorp.com/article/10834131",
+     point:"조선업 인력 확보를 위한 '울산형 고용허가제' 시범사업에서, 일부 협력사가 근무지 변경 미준수 시 벌금을 부과하는 조건을 두어 강제노동 논란이 일었다.",
+     sum:"원청의 기업 책무 문제로 번지고 있다. 협력사 계약 조건까지 점검 범위에 들어간다."},
+
+    {title:"유통·물류 야간노동 실태 — 도매유통 70.2%가 교대근무",
+     at:"2026-08-13", src:"월간노동법률", inds:["유통"],
+     url:"https://www.worklaw.co.kr/main2022/view/view.asp?bi_pidx=37347",
+     point:"고용노동부 감독 결과 도매·유통업은 70.2%가 교대근무 형태였고, 1일당 근무시간은 10.1시간으로 주간 근무자보다 길었다.",
+     sum:"야간노동 형태는 교대근무 64.8%, 야간 전담 35.2%였다. 야간노동을 하는 이유로는 수당 등 경제적 이유가 55.8%로 가장 많았다."}
+  ],
+  /* 담당자 노트는 예시를 두지 않는다 — 직접 쓴 것만 남는다 */
+  notes:[]
+};
+
+/* HR 이슈는 기사라 법제처가 아니라 뉴스 검색으로 보낸다.
+   태스크 5 에서 수집한 기사 원문 URL 로 대체된다. */
+var NEWS_SEARCH = "https://search.naver.com/search.naver?where=news&query=";
+
+/* 선택된 산업군. '전체'는 두지 않는다 —
+   개별 산업 목록과 내용이 겹쳐 같은 기사가 두 번 보이는 혼선이 생긴다.
+   기본값은 금융 (이 화면을 보는 곳이 증권사다). */
+var industry = "금융";
+
+/* 원문 링크.
+   법제처 국가법령정보센터가 법령·행정규칙·판례·해석례를 모두 호스팅하므로
+   항목 종류에 맞는 검색 경로로 보낸다. 홈페이지가 아니라 해당 문서로 떨어진다.
+   (2026-08-13 확인: 4개 경로 모두 200, 질의어 반영됨.
+    대법원 glaw.scourt.go.kr 은 DNS 가 해소되지 않아 쓰지 않는다.)
+
+   태스크 5 에서 API 가 주는 항목별 상세링크(예: 판례상세링크)로 대체한다. */
+/* 2026-08-13 실측으로 정리한 패턴.
+   admRulSc 는 menuId=5 를 붙이면 "검색결과가 없습니다" 가 떠서 빼야 한다.
+   expcSc 는 menuId=9 로 정상 동작하고 결과에 고용노동부 해석이 포함된다. */
+var SEARCH_URL = {
+  law:    "https://www.law.go.kr/lsSc.do?menuId=1&query=",
+  notice: "https://www.law.go.kr/admRulSc.do?query=",
+  prec:   "https://www.law.go.kr/precSc.do?menuId=7&query=",
+  interp: "https://www.law.go.kr/expcSc.do?menuId=9&query="
+};
+
+function searchTerm(title){
+  return String(title)
+    .replace(/일부개정법률안?|일부개정|전부개정|시행령|시행규칙|공포|고시|관련 해석|에 관한 판단|관련 판단/g," ")
+    .replace(/\s+/g," ").trim() || String(title);
+}
+
+/* 판례·해석은 식별번호로 검색해야 그 문서 하나로 정확히 떨어진다.
+   제목으로 검색하면 비슷한 사건이 여러 건 나온다. */
+/* 아직 실제 값이 없는 자리표시자(0000 형태)로는 검색하지 않는다 —
+   빈 결과 페이지로 보내면 "확인했다"는 뜻이 되어 버린다. */
+function isPlaceholderRef(ref){ return /0{3,}/.test(String(ref)); }
+
+function docUrl(kind, it){
+  if (it.url) return it.url;                       /* 태스크 5: API 상세링크 우선 */
+  var base = SEARCH_URL[kind];
+  if (!base) return null;
+  var byRef = (kind === "prec" || kind === "interp") && it.ref && !isPlaceholderRef(it.ref);
+  return base + encodeURIComponent(byRef ? it.ref : searchTerm(it.title));
+}
+
+var KINDS = ["law","notice","prec","interp"];
+var DOW = ["일","월","화","수","목","금","토"];
+
+function pad(n){ return (n<10?"0":"")+n; }
+function ymd(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function midnight(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function shift(d, days){ var n = midnight(d); n.setDate(n.getDate()+days); return n; }
+function label(d){ return ymd(d)+" ("+DOW[d.getDay()]+")"; }
+
+/* 보고 있는 날짜 */
+var today = midnight(new Date());
+var view  = midnight(new Date());
+
+/* 전체 펼치기 상태 — 항목을 다시 그릴 때도 유지된다 */
+var expandAll = false;
+
+function mmdd(iso){
+  var p = String(iso).slice(0,10).split("-");
+  return p.length===3 ? p[1]+"-"+p[2] : String(iso);
+}
+
+function stamp(iso){
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  return pad(d.getMonth()+1)+"-"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+}
+
+/* 그 날짜 기준 최신 브리핑: 공개일이 보는 날짜 이하인 항목 */
+function forView(list){
+  var upto = ymd(view);
+  return (list || [])
+    .filter(function(it){ return String(it.at).slice(0,10) <= upto; })
+    .sort(function(a,b){ return String(b.at).localeCompare(String(a.at)); });
+}
+
+/* 보는 날짜 또는 그 전날에 나온 것 */
+function isFresh(iso){
+  var at = String(iso).slice(0,10);
+  return at >= ymd(shift(view,-1)) && at <= ymd(view);
+}
+
+function dday(eff){
+  if (!eff) return null;
+  var t = new Date(String(eff)+"T00:00:00");
+  if (isNaN(t.getTime())) return null;
+  var days = Math.ceil((t - view) / 86400000);
+  if (days > 0)   return "시행 D-"+days;
+  if (days === 0) return "오늘 시행";
+  return "시행 "+String(eff);
+}
+
+function el(tag, cls, text){
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined && text !== null) n.textContent = text;   /* innerHTML 금지 */
+  return n;
+}
+
+/* 금액·비율·기간에 형광펜을 칠한다.
+   innerHTML 을 쓰지 않고 텍스트 노드와 span 을 번갈아 붙인다. */
+var HL_RE = /(주\s*\d+\s*시간|\d[\d,]*\s*(?:원|만원|억원|%|시간|일|개월|년|명|배|회|건|차)|\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{4}-\d{2}-\d{2})/g;
+
+function sentence(cls, text){
+  var p = el("p", cls);
+  var s = String(text);
+  var last = 0, m;
+  HL_RE.lastIndex = 0;
+  while ((m = HL_RE.exec(s)) !== null){
+    if (m.index > last) p.appendChild(document.createTextNode(s.slice(last, m.index)));
+    p.appendChild(el("span","hl",m[0]));
+    last = m.index + m[0].length;
+    if (HL_RE.lastIndex === m.index) HL_RE.lastIndex++;   /* 빈 매칭 방어 */
+  }
+  if (last < s.length) p.appendChild(document.createTextNode(s.slice(last)));
+  return p;
+}
+
+function buildDetail(pairs){
+  var box = el("div","idetail");
+  box.hidden = true;
+  var dl = document.createElement("dl");
+  pairs.forEach(function(p){
+    dl.appendChild(el("dt",null,p[0]));
+    dl.appendChild(el("dd",null,p[1]));
+  });
+  box.appendChild(dl);
+  return box;
+}
+
+function buildItem(it, kind){
+  var li = el("li","item");
+
+  var head = el("div","ihead");
+  if (it.tag) head.appendChild(el("span","tag",it.tag));
+  head.appendChild(el("h3","ititle",it.title));
+  /* 식별번호 — 조문 · 고시번호 · 사건번호 · 안건번호.
+     태스크 5 에서 API 필드(사건번호·안건번호·발령번호)로 채운다. */
+  if (it.ref) head.appendChild(el("span","iref",it.ref));
+  if (isFresh(it.at)) head.appendChild(el("span","new","NEW"));
+  li.appendChild(head);
+
+  /* 요지 — 결론 문장이 먼저, 배경 문장이 뒤에 온다. 수치엔 형광펜이 칠해진다 */
+  if (it.point) li.appendChild(sentence("ipoint", it.point));
+  if (it.sum)   li.appendChild(sentence("isum", it.sum));
+
+  var detail = (it.detail && it.detail.length) ? buildDetail(it.detail) : null;
+  if (detail) li.appendChild(detail);
+
+  var meta = el("div","imeta");
+  meta.appendChild(el("span",null,mmdd(it.at)));
+  meta.appendChild(el("span","sep","·"));
+  meta.appendChild(el("span",null,it.src));
+  var dd = dday(it.eff);
+  if (dd){
+    meta.appendChild(el("span","sep","·"));
+    meta.appendChild(el("span",null,dd));
+  }
+
+  if (detail){
+    var more = el("button","chip","자세히");
+    more.type = "button";
+
+    /* 전체 펼치기 상태를 초기값으로 반영한다 */
+    function apply(open){
+      li.classList.toggle("open", open);
+      detail.hidden = !open;
+      more.textContent = open ? "접기" : "자세히";
+      more.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    apply(expandAll);
+
+    more.addEventListener("click", function(){
+      apply(!li.classList.contains("open"));
+    });
+    meta.appendChild(more);
+  }
+
+  var url = docUrl(kind, it);
+  if (url){
+    var a = el("a","chip","원문 찾기");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.title = "국가법령정보센터에서 이 항목을 엽니다";
+    meta.appendChild(a);
+  }
+
+  li.appendChild(meta);
+  return li;
+}
+
+/* ---------- 산업별 HR 이슈 ---------- */
+function buildHrItem(it){
+  var li = el("li","item");
+
+  var head = el("div","ihead");
+  head.appendChild(el("span","aitag","AI 요약"));
+  head.appendChild(el("h3","ititle",it.title));
+  if (isFresh(it.at)) head.appendChild(el("span","new","NEW"));
+
+  var inds = el("div","inds");
+  /* 왜 위에 올라왔는지 보이게 한다 — 정렬 근거를 감추지 않는다 */
+  if (it.near >= 3)      inds.appendChild(el("span","why","증권 직접"));
+  else if (it.near >= 2) inds.appendChild(el("span","why","금융 계열"));
+  if (it.risk >= 3)      inds.appendChild(el("span","why","리스크 높음"));
+  (it.inds || []).forEach(function(n){
+    var b = el("span","ind",n);
+    b.setAttribute("data-ind", n);      /* 산업별 색 지정용 */
+    inds.appendChild(b);
+  });
+  head.appendChild(inds);
+  li.appendChild(head);
+
+  if (it.point) li.appendChild(sentence("ipoint", it.point));
+  if (it.sum)   li.appendChild(sentence("isum", it.sum));
+
+  var meta = el("div","imeta");
+  meta.appendChild(el("span",null,mmdd(it.at)));
+  meta.appendChild(el("span","sep","·"));
+  meta.appendChild(el("span",null,it.src));
+  var hdd = dday(it.eff);
+  if (hdd){
+    meta.appendChild(el("span","sep","·"));
+    meta.appendChild(el("span",null,hdd));
+  }
+
+  /* 요약한 그 출처로 바로 간다. url 이 없으면(=출처 미확인) 링크를 걸지 않는다 —
+     검색창으로 보내면 "확인했다"는 뜻이 되어 버린다. */
+  if (it.url){
+    var a = el("a","chip","출처 보기");
+    a.href = it.url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.title = it.src + " — 이 요약의 출처";
+    meta.appendChild(a);
+  }
+
+  li.appendChild(meta);
+  return li;
+}
+
+var HR_MAX = 4;   /* 목록이 길어지면 아침에 훑기 어렵다. 최대 4건만 보여준다 */
+
+/* 상단 우선순위 — 증권업에 가까울수록 · 리스크가 클수록 · 회사가 클수록 위로.
+   가중치를 코드에 드러내 두어 왜 그 순서인지 확인할 수 있게 했다. */
+function priority(it){
+  return (it.near || 0) * 4 + (it.risk || 0) * 2 + (it.scale || 0);
+}
+
+function renderHr(){
+  var full = forView(SAMPLE.hr)
+    .filter(function(it){ return (it.inds || []).indexOf(industry) !== -1; })
+    .sort(function(a,b){
+      var d = priority(b) - priority(a);
+      return d !== 0 ? d : String(b.at).localeCompare(String(a.at));
+    });
+  var list = full.slice(0, HR_MAX);
+
+  var ul = document.getElementById("hrList");
+  var count = document.querySelector("#hrCard .fcount");
+  ul.textContent = "";
+
+  if (!list.length){
+    ul.appendChild(el("li","empty", industry+" 산업에 해당하는 이슈가 없습니다."));
+    count.textContent = "0건";
+    return;
+  }
+  list.forEach(function(it){ ul.appendChild(buildHrItem(it)); });
+
+  /* 잘라낸 건수를 숨기지 않는다 — 다 본 것처럼 읽히면 안 된다 */
+  count.textContent = (full.length > list.length
+      ? list.length+" / "+full.length+"건"
+      : list.length+"건") + " · "+industry;
+}
+
+Array.prototype.forEach.call(document.querySelectorAll("#tabs .tab"), function(btn){
+  btn.addEventListener("click", function(){
+    industry = btn.getAttribute("data-ind");
+    Array.prototype.forEach.call(document.querySelectorAll("#tabs .tab"), function(b){
+      b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+    });
+    renderHr();
+  });
+});
+
+function renderCard(card){
+  var kind = card.getAttribute("data-kind");
+  var list = forView(SAMPLE[kind]);
+  var ul = card.querySelector(".items");
+  var count = card.querySelector(".fcount");
+  ul.textContent = "";
+
+  if (!list.length){
+    ul.appendChild(el("li","empty","이 날짜까지 확인된 항목이 없습니다."));
+    count.textContent = "0건";
+    return 0;
+  }
+  list.forEach(function(it){ ul.appendChild(buildItem(it, kind)); });
+  count.textContent = list.length+"건";
+  return list.filter(function(it){ return isFresh(it.at); }).length;
+}
+
+/* ---------- 담당자 노트 ----------
+   지금은 이 브라우저에만 저장된다. 태스크 6 에서 Supabase + 담당자 권한으로 바꾼다.
+   내가 쓴 노트가 하나라도 있으면 예시 노트는 더 보여주지 않는다
+   (예시와 실제 기록이 한 목록에 섞이면 어느 쪽이 진짜인지 알 수 없다). */
+var NOTE_KEY = "labor-dashboard-notes-local";
+
+function readNotes(){
+  try {
+    var a = JSON.parse(localStorage.getItem(NOTE_KEY));
+    return Object.prototype.toString.call(a) === "[object Array]" ? a : [];
+  } catch(e){ return []; }
+}
+function writeNotes(a){
+  try { localStorage.setItem(NOTE_KEY, JSON.stringify(a)); } catch(e){}
+}
+
+function renderNotes(){
+  var upto = ymd(view);
+  var mine = readNotes();
+  var isSample = mine.length === 0;
+  var src = isSample ? (SAMPLE.notes || []) : mine;
+
+  var list = src.filter(function(n){ return String(n.at).slice(0,10) <= upto; })
+                .sort(function(a,b){ return String(b.at).localeCompare(String(a.at)); });
+
+  var ul = document.getElementById("noteList");
+  var count = document.querySelector("#noteCard .fcount");
+  ul.textContent = "";
+
+  if (!list.length){
+    ul.appendChild(el("li","empty","이 날짜까지 등록된 노트가 없습니다."));
+    count.textContent = "0건";
+    return;
+  }
+
+  list.forEach(function(n){
+    var li = el("li","note");
+    li.appendChild(el("div","ntext",n.text));
+
+    var meta = el("div","nmeta");
+    meta.appendChild(el("span",null,n.by+" · "+stamp(n.at)));
+    if (isSample){
+      meta.appendChild(el("span","nsample","예시"));
+    } else {
+      var del = el("button","ndel","삭제");
+      del.type = "button";
+      del.addEventListener("click", function(){
+        writeNotes(readNotes().filter(function(x){ return x.id !== n.id; }));
+        renderNotes();
+      });
+      meta.appendChild(del);
+    }
+    li.appendChild(meta);
+    ul.appendChild(li);
+  });
+  count.textContent = list.length+"건";
+}
+
+function saveNote(){
+  var byEl = document.getElementById("noteBy");
+  var txEl = document.getElementById("noteText");
+  var hint = document.getElementById("noteHint");
+  var text = txEl.value.trim();
+
+  if (!text){
+    hint.textContent = "내용을 입력해 주세요.";
+    hint.className = "nhint err";
+    txEl.focus();
+    return false;
+  }
+
+  /* 보고 있는 날짜에 기록한다 — 깜빡한 날도 채워 넣을 수 있게 */
+  var now = new Date();
+  var at = new Date(view.getFullYear(), view.getMonth(), view.getDate(),
+                    now.getHours(), now.getMinutes(), now.getSeconds());
+
+  var list = readNotes();
+  list.push({
+    id: String(at.getTime()) + "-" + Math.floor(Math.random()*100000),
+    text: text,
+    by: byEl.value.trim() || "담당자",
+    at: at.getFullYear()+"-"+pad(at.getMonth()+1)+"-"+pad(at.getDate())+
+        "T"+pad(at.getHours())+":"+pad(at.getMinutes())+":"+pad(at.getSeconds())
+  });
+  writeNotes(list);
+
+  txEl.value = "";
+  hint.textContent = "저장했습니다.";
+  hint.className = "nhint";
+  renderNotes();
+  txEl.focus();
+  return true;
+}
+
+document.getElementById("noteForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  saveNote();
+});
+document.getElementById("noteText").addEventListener("keydown", function(e){
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+    e.preventDefault();
+    saveNote();
+  }
+});
+
+function render(){
+  var isToday = ymd(view) === ymd(today);
+
+  /* 제목에는 날짜를 넣지 않는다 — 아래 날짜 이동에 이미 있다 */
+  document.getElementById("navDate").textContent = label(view);
+  document.getElementById("nextDay").disabled = isToday;   /* 미래로는 못 간다 */
+  document.getElementById("todayBtn").disabled = isToday;
+  document.getElementById("pastPill").hidden = isToday;
+
+  var fresh = 0;
+  var cards = document.querySelectorAll("#cards .fcard");
+  for (var i=0;i<cards.length;i++) fresh += renderCard(cards[i]);
+  document.getElementById("newPill").textContent = "새 항목 "+fresh+"건";
+  renderHr();
+  renderNotes();
+}
+
+function move(days){
+  var next = shift(view, days);
+  if (next > today) return;                                /* 미래 차단 */
+  view = next;
+  render();
+}
+
+document.getElementById("prevDay").addEventListener("click", function(){ move(-1); });
+document.getElementById("nextDay").addEventListener("click", function(){ move(1); });
+document.getElementById("todayBtn").addEventListener("click", function(){
+  view = midnight(new Date());
+  render();
+});
+document.getElementById("expandBtn").addEventListener("click", function(){
+  expandAll = !expandAll;
+  this.textContent = expandAll ? "전체 접기" : "전체 펼치기";
+  this.setAttribute("aria-pressed", expandAll ? "true" : "false");
+  render();
+});
+
+/* ---------- 카드별 접기 ----------
+   접힌 상태는 카드 요소의 클래스에 있으므로 다시 그려도 유지된다.
+   헤더의 건수는 접어도 계속 보인다. */
+Array.prototype.forEach.call(document.querySelectorAll(".foldbtn"), function(btn){
+  /* 법령 4종은 <article>, HR·노트는 <section> 이다.
+     closest("section") 으로 찾으면 카드가 아니라 상위 그리드가 잡힌다. */
+  var sec = btn.closest(".fcard, .hrcard, .notecard");
+  if (!sec) return;
+  var name = (sec.querySelector("h2") || {}).textContent || "카드";
+  function apply(open){
+    sec.classList.toggle("collapsed", !open);
+    btn.textContent = open ? "▾" : "▸";
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", name + (open ? " 접기" : " 펼치기"));
+  }
+  apply(true);
+  btn.addEventListener("click", function(){
+    apply(sec.classList.contains("collapsed"));
+  });
+});
+
+/* ---------- 테마 ---------- */
+var UI_KEY = "labor-dashboard-ui";   /* 화면 설정만. 기록은 Supabase (PRD 6항) */
+
+function readUI(){
+  try { return JSON.parse(localStorage.getItem(UI_KEY)) || {}; }
+  catch(e){ return {}; }
+}
+function writeUI(o){
+  try { localStorage.setItem(UI_KEY, JSON.stringify(o)); } catch(e){}
+}
+
+function applyTheme(mode){
+  document.documentElement.setAttribute("data-theme", mode);
+  var b = document.getElementById("themeBtn");
+  var dark = mode === "dark";
+  b.textContent = dark ? "라이트 모드" : "다크 모드";
+  b.setAttribute("aria-pressed", dark ? "true" : "false");
+}
+
+function initTheme(){
+  var saved = readUI().theme;
+  var mode = saved || ((window.matchMedia
+    && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light");
+  applyTheme(mode);
+
+  document.getElementById("themeBtn").addEventListener("click", function(){
+    var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    applyTheme(next);
+    var ui = readUI();
+    ui.theme = next;
+    writeUI(ui);
+  });
+}
+
+render();
+initTheme();
+
+}());
+</script>
+</body>
+</html>
