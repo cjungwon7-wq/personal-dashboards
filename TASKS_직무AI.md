@@ -14,14 +14,14 @@
 |---|---|---|---|---|
 | 1 | 화면 골격 + 4카드 + HR 이슈 + 담당자 노트 | ✅ 완료 | 없음 | 128 / 128 통과 |
 | 2 | Supabase 테이블 5종 + RLS | ✅ 완료 | 없음 | anon 차단 실측 확인 |
-| 3 | 로그인 게이트 + 읽기 연동 | ⬜ 대기 | 2 · 관리자 계정 발급 | — |
+| 3 | 로그인 게이트 + 읽기 연동 | ✅ 완료 | 2 · 관리자 계정 발급 | 154 / 154 통과 |
 | 4 | Vercel 배포 (`/labor` 라우팅) | ⚠️ 사용자 조치 필요 | 1 | 대시보드 연결 필요 |
 | 5 | 수집 함수 (법제처 API) + Cron | ⬜ 대기 | 4 · **`OC` 키** | — |
-| 6 | 담당자 큐레이션 (중요·코멘트·숨김) | ⬜ 대기 | 3 | — |
+| 6 | 담당자 큐레이션 (중요·코멘트·숨김) | 🔸 노트 쓰기만 완료 | 3 | 권한 4항목 통과 |
 | 7 | 산업군 필터 | ✅ 완료 (태스크 1에 포함) | — | 필터·정렬 검증 |
 | 8 | AI 요약 | 🔸 부분 적용 | — | HR 이슈에만 라벨 적용 |
 
-**전체 자동 검증: 128 / 128 통과** (Edge headless, 2026-08-13)
+**전체 자동 검증: 154 / 154 통과** (Edge headless, 2026-08-13)
 
 ---
 
@@ -141,26 +141,75 @@
 
 ---
 
-## 태스크 3 — 로그인 게이트 + 읽기 연동 ⬜
+## 태스크 3 — 로그인 게이트 + 읽기 연동 ✅
 
-**선행**: 관리자가 Supabase 대시보드에서 계정을 발급해야 한다
-(`Authentication → Users → Add user`, `Auto Confirm User` 켜기).
+**요청**: "Supabase에 필요한 테이블을 만들고, localStorage 저장을 Supabase 저장으로 바꿔줘"
 
-- 로그인 전에는 화면이 가려지고, 데이터 요청도 나가지 않는다
-- **가입 기능을 만들지 않는다.** 로그인만 있다
-- 로그인 성공 시 더미 데이터를 실제 `labor_items` 조회로 교체한다
-- Supabase 접근은 라이브러리 없이 `fetch` 로 PostgREST/Auth REST API 직접 호출
-- 코드에 넣는 키는 **publishable 키뿐이다**
+### 테이블은 이미 있었지만 스키마가 화면을 못 따라갔다
 
-**완료 기준**
+태스크 2에서 만든 `labor_items` 는 PRD 6항 초안 기준이었는데, 태스크 1에서 화면에
+**항목 배지(`tag`)** 와 **산업별 HR 이슈**(`near`·`risk`·`scale` 정렬 가중치)가 생겼다.
+지금 스키마로는 셋 다 담지 못해 확장했다.
 
-| 검증 항목 | 방법 |
+| 추가 | 이유 |
 |---|---|
-| 로그인 전 앱 가려짐 | 화면 확인 |
-| 틀린 비밀번호 거부 | 실제 시도 |
-| 로그인 후 실 데이터 표시 | 테이블에 심은 행이 화면에 |
-| **비로그인 직접 호출이 0건** | publishable 키로 REST 호출 |
-| 세션 저장 위치 | 공용 PC 고려해 `sessionStorage` 검토 |
+| `tag` | 개정·공포·고시·전합·판결·해석 배지 |
+| `near` · `risk` · `scale` (0~3) | `renderHr` 의 `priority = near*4 + risk*2 + scale` |
+| `is_sample` | 사람이 넣은 예시인지. 실제 확인분과 섞이면 근거로 쓸 수 있는지 구별되지 않는다 |
+| `kind` 에 `HR이슈` 추가 | 별도 테이블로 쪼개면 `labor_curations` FK 가 `labor_items` 를 가리키므로 HR 이슈에는 중요 표시를 달 수 없게 된다 |
+
+화면에 있던 예시 상수 21건을 그대로 `labor_items` 로 옮겼다
+(법령 3 · 고시 3 · 판례 3 · 행정해석 3 · HR이슈 9). 그중 **8건이 예시**,
+나머지 13건은 2026-08-13에 식별번호·출처를 확인한 자료다.
+
+### 계정 발급 — 이메일 확인 경로를 지나지 않았다
+
+`auth.users` 에 `email_confirmed_at` 을 채워 직접 넣었다. 대시보드
+`Add user` + `Auto Confirm User` 와 같은 결과이며, **헬스케어 태스크 12가 막혔던
+확인 메일 경로를 지나지 않는다.** 두 계정 모두 실제 로그인으로 확인했다.
+
+| 계정 | 역할 |
+|---|---|
+| `labor.staff@example.com` | 담당자 (노트 작성 가능) |
+| `labor.member@example.com` | 팀원 (읽기 전용) |
+
+> 검증·시연용 계정이다. 실사용 계정은 대시보드에서 따로 발급하고, 이 둘은 지우거나
+> 비밀번호를 바꾸는 편이 좋다. 비밀번호는 저장소에 남기지 않는다.
+
+### 저장 계층 교체 방식
+
+`state = dayOf(view)` 로 15개 핸들러를 안 고쳤던 헬스케어 태스크 16과 같은 수법을 썼다.
+서버 행을 화면 구조로 바꾸는 `toItem()` 하나를 두어 **`buildItem` · `renderCard` ·
+`renderHr` 는 한 줄도 고치지 않았다.**
+
+- 세션은 `sessionStorage` — 사내 공용 PC 에서 다음 사람에게 열려 있으면 로그인의 의미가 없다
+- 401 이면 토큰을 한 번 갱신해 재시도하고, 그래도 실패하면 로그인으로 돌린다 (빈 화면을 띄우지 않는다)
+- 노트 저장은 **서버 응답을 확인한 뒤** 화면에 반영한다. 낙관적으로 먼저 그리면
+  권한이 없어 거부됐을 때도 팀에 전달된 것처럼 보인다
+- 테마(`labor-dashboard-ui`)만 localStorage 에 남겼다 — 계정 데이터가 아니라 이 브라우저의 화면 설정이다
+
+**작업 중 잡은 것** — 로그아웃이 데이터를 비우면서 **화면을 다시 그리지 않아**
+앞사람의 브리핑 12건이 DOM 에 그대로 남았다. `body.locked` 로 가려지기만 할 뿐이라
+개발자도구로 읽혔다. 공용 PC 를 전제한 화면에서는 세션을 안 지운 것과 다를 바 없어
+`render()` 를 함께 호출하도록 고쳤다. (검증이 잡아냈다)
+
+| 검증 항목 | 결과 |
+|---|---|
+| 로그인 전 앱 가려짐 · 항목 0건 · 가입 기능 없음 | PASS |
+| **비로그인 직접 호출이 0건** (labor_items · labor_notes) | PASS |
+| 틀린 비밀번호 거부 | PASS |
+| 로그인 후 실 데이터 21건 표시 (카드 12 + HR 9) | PASS |
+| 세션이 `sessionStorage` 에만 · 비밀번호를 입력창에 남기지 않음 | PASS |
+| 노트 저장·삭제가 Supabase 에 반영 (서버 대조) | PASS |
+| 노트를 localStorage 에 두지 않음 | PASS |
+| 담당자에게만 작성 폼이 열림 | PASS |
+| **팀원의 직접 쓰기를 RLS 가 거부** (HTTP 403) | PASS |
+| **작성자가 아니면 삭제되지 않음** | PASS |
+| 로그아웃하면 다시 잠기고 화면이 비워짐 | PASS |
+| 예시 배지 표시 · 실제 확인분에는 없음 | PASS |
+| 라이트 / 다크 렌더링 | PASS |
+
+**전체 154 / 154 통과.**
 
 ---
 
@@ -197,9 +246,16 @@
 
 ---
 
-## 태스크 6 — 담당자 큐레이션 ⬜
+## 태스크 6 — 담당자 큐레이션 🔸 노트 쓰기만 완료
 
-중요 표시 · 해설 코멘트 · 숨기기. 담당자 노트 쓰기도 여기서 붙인다.
+중요 표시 · 해설 코멘트 · 숨기기.
+
+**담당자 노트 쓰기는 태스크 3에서 끝났다** — 요청이 "localStorage 저장을 Supabase 로"
+였고 노트가 그 대상이었기 때문이다. 담당자만 작성, 작성자만 삭제, 팀원 우회 쓰기 거부까지
+실측으로 확인했다 (태스크 3 표).
+
+남은 것은 `labor_curations` 를 쓰는 **중요 표시 · 해설 코멘트 · 숨기기** 세 가지다.
+테이블과 RLS 는 태스크 2에서 이미 만들어 뒀다.
 
 **완료 기준**
 
@@ -233,14 +289,50 @@
 | # | 조치 | 막히는 태스크 |
 |---|---|---|
 | 1 | [법제처 OPEN API 신청](https://open.law.go.kr/LSO/openApi/guideList.do) → `OC` 키 | 5 |
-| 2 | Supabase 대시보드에서 담당자 계정 발급 (`Auto Confirm User`) | 3 |
-| 3 | Supabase 대시보드에서 `disable_signup` 끄기 | 3 (권한 완결) |
+| 2 | ~~담당자 계정 발급~~ → 태스크 3에서 SQL 로 발급 완료 | — |
+| 3 | Supabase 대시보드에서 `disable_signup` 끄기 | 권한 완결 (화면에는 가입 기능이 없지만 API 경로는 열려 있다) |
+| 4 | 실사용 계정 발급 · 검증용 `labor.*@example.com` 두 계정 정리 | 실배포 전 |
+| 5 | `Leaked Password Protection` 켜기 (태스크 2 잔여 경고) | 보안 권고 |
 
 ---
 
 ## 검증 실행 방법
 
-태스크 1에서 `_job_test_inject.js` 를 만든 뒤 이 절을 채운다.
-기존 두 프로젝트와 같은 방식(원본 HTML에 스크립트를 주입한 사본을 브라우저로 실행)을 쓰되,
-로그인이 필요하므로 테스트 계정 자격증명은 **환경변수로 주입한다.**
-검증 스크립트에 비밀번호를 넣지 않는다 (헬스케어 태스크 12에서 지적된 사항).
+> **검증은 실제 Supabase 를 건드린다.** 아래 테스트 계정 전용이며 실사용 계정으로 돌리지 말 것.
+> 검증 스크립트에는 비밀번호를 넣지 않는다 — 실행 시 주입한다.
+> 스크립트가 시작할 때 자기 노트를 지우고 시작하므로 별도 초기화 SQL 은 필요 없다.
+
+```powershell
+$env:JOB_TEST_EMAIL    = "labor.staff@example.com"
+$env:JOB_TEST_PW       = "<담당자 비밀번호>"
+$env:JOB_MEMBER_EMAIL  = "labor.member@example.com"
+$env:JOB_MEMBER_PW     = "<팀원 비밀번호>"
+
+$src = "직무AI_대시보드.html"; $inj = "_job_test_inject.js"
+$tmp = "$env:TEMP\jobtest"; New-Item -ItemType Directory -Force $tmp | Out-Null
+$html = [IO.File]::ReadAllText($src, [Text.Encoding]::UTF8)
+$js   = [IO.File]::ReadAllText($inj, [Text.Encoding]::UTF8)
+$creds = "window.__TEST_CREDS={email:'$env:JOB_TEST_EMAIL',pw:'$env:JOB_TEST_PW'," +
+         "memberEmail:'$env:JOB_MEMBER_EMAIL',memberPw:'$env:JOB_MEMBER_PW'};"
+[IO.File]::WriteAllText("$tmp\test.html",
+  $html.Replace('</body>', "<script>$creds</script><script>$js</script></body>"),
+  (New-Object Text.UTF8Encoding($false)))
+
+$edge = "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
+$prof = Join-Path $tmp "prof"
+if (Test-Path $prof) { Remove-Item -Recurse -Force $prof }   # 세션이 남으면 게이트 검증이 건너뛰어진다
+Start-Process -FilePath $edge -Wait -NoNewWindow `
+  -ArgumentList @("--headless=new","--disable-gpu","--no-first-run","--window-size=1440,1200",
+                  "--allow-file-access-from-files","--user-data-dir=$prof",
+                  "--virtual-time-budget=120000","--dump-dom",([Uri]"$tmp\test.html").AbsoluteUri) `
+  -RedirectStandardOutput "$tmp\dom.txt" -RedirectStandardError "$tmp\err.txt" | Out-Null
+$dom = [IO.File]::ReadAllText("$tmp\dom.txt", [Text.Encoding]::UTF8)
+$m = [regex]::Matches($dom, '자동 검증 결과 — [0-9][\s\S]*')
+(($m[0].Value -replace '</div>', "`n") -replace '<[^>]+>','').Trim()
+```
+
+> **`--window-size` 를 반드시 준다.** headless 기본 창은 800px 라 880px 이하 1단 전환
+> 규칙에 걸려 "2단 그리드" 항목이 실패한다. 코드 문제가 아니라 실행 조건 문제다.
+
+기능을 수정한 뒤에는 `_job_test_inject.js` 에 검증 항목을 추가하고 위 절차를 다시 실행할 것.
+현재 항목 수는 **154개**다.

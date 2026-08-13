@@ -1,9 +1,98 @@
 // 자동 검증 스크립트 — 원본에는 포함되지 않고 테스트 사본에만 주입됩니다.
 // 대상: 직무AI_대시보드.html (인사노무 법령 브리핑)
-(function () {
+(async function () {
   "use strict";
   var log = [];
   function ok(name, cond) { log.push({ name: name, pass: !!cond }); }
+
+  // ---------- 비동기 대기 ----------
+  // 데이터가 Supabase 에서 오므로, 화면이 그려진 뒤에 검사해야 한다.
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  async function waitFor(fn, ms) {
+    var until = Date.now() + (ms || 20000);
+    while (Date.now() < until) { if (fn()) return true; await sleep(60); }
+    return false;
+  }
+
+  // publishable 키는 코드에 둬도 되는 값이다(RLS 가 실제 차단을 맡는다).
+  // 비밀번호는 넣지 않고 실행 시 주입받는다 — 이 파일은 저장소에 있다.
+  var SB_URL = "https://qplxvfwuobvnobqpivbm.supabase.co";
+  var SB_KEY = "sb_publishable_zuCioXoqOBTJM06bz9VC3w_qtfXJEjm";
+  var creds = window.__TEST_CREDS || {};
+
+  function sess() {
+    try { return JSON.parse(sessionStorage.getItem("labor-dashboard-session")); }
+    catch (e) { return null; }
+  }
+  async function anonRows(table) {
+    try {
+      var r = await fetch(SB_URL + "/rest/v1/" + table + "?select=id&limit=5",
+        { headers: { apikey: SB_KEY } });
+      return await r.json();
+    } catch (e) { return null; }
+  }
+  async function myRows(path) {
+    var s = sess();
+    if (!s) return null;
+    try {
+      var r = await fetch(SB_URL + "/rest/v1/" + path,
+        { headers: { apikey: SB_KEY, Authorization: "Bearer " + s.access_token } });
+      return await r.json();
+    } catch (e) { return null; }
+  }
+
+  // ---------- 로그인 게이트 ----------
+  // 읽기에도 로그인이 필요하다 (PRD 6항). 화면을 가리는 것과 데이터가 막히는 것은 다르다.
+  ok("로그인 전 앱이 가려짐",
+    document.body.classList.contains("locked") &&
+    document.getElementById("authGate").hidden === false &&
+    document.querySelectorAll("#cards .item").length === 0);
+  ok("가입 기능을 두지 않음",
+    !/회원가입|가입하기|sign ?up/i.test(document.getElementById("authGate").textContent));
+
+  var anonItems = await anonRows("labor_items");
+  ok("비로그인 직접 호출이 0건 (RLS)", Array.isArray(anonItems) && anonItems.length === 0);
+  var anonNotes = await anonRows("labor_notes");
+  ok("비로그인 노트 조회도 0건", Array.isArray(anonNotes) && anonNotes.length === 0);
+
+  var authForm = document.getElementById("authForm");
+  function submitAuth(email, pw) {
+    document.getElementById("authEmail").value = email || "";
+    document.getElementById("authPw").value = pw || "";
+    authForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  }
+
+  submitAuth(creds.email, "wrong-" + (creds.pw || "x"));
+  await waitFor(function () {
+    return document.documentElement.getAttribute("data-loaded") === "denied";
+  });
+  ok("틀린 비밀번호 거부",
+    document.getElementById("authHint").className.indexOf("err") !== -1 &&
+    document.body.classList.contains("locked") &&
+    document.querySelectorAll("#cards .item").length === 0);
+
+  submitAuth(creds.email, creds.pw);
+  var entered = await waitFor(function () {
+    return document.documentElement.getAttribute("data-loaded") === "1";
+  }, 25000);
+  ok("로그인 성공 후 앱 진입",
+    entered && !document.body.classList.contains("locked") &&
+    document.getElementById("authGate").hidden === true);
+  ok("세션은 sessionStorage 에만 (공용 PC 고려)",
+    !!sessionStorage.getItem("labor-dashboard-session") &&
+    !localStorage.getItem("labor-dashboard-session"));
+  ok("비밀번호를 입력창에 남기지 않음", document.getElementById("authPw").value === "");
+  ok("계정·역할 표시", /담당자/.test(document.getElementById("whoPill").textContent));
+
+  // 이전 실행이 남긴 노트를 지운다. 남아 있으면 이후 개수 검증이 전부 어긋난다.
+  var guard = 0;
+  while (document.querySelector("#noteList .ndel") && guard++ < 20) {
+    var before0 = document.querySelectorAll("#noteList .note").length;
+    document.querySelector("#noteList .ndel").click();
+    await waitFor(function () {
+      return document.querySelectorAll("#noteList .note").length < before0;
+    }, 10000);
+  }
 
   // 색은 카드 전체를 채우지 않고 상단 4px 룰로만 나타난다 (제니미감 추출 파스텔)
   var KIND = [
@@ -475,27 +564,34 @@
     document.body.textContent.indexOf("법률 자문이 아닙니다") !== -1);
 
   // ---------- 담당자 노트 (예시 없음) ----------
-  try { localStorage.removeItem("labor-dashboard-notes-local"); } catch (e) {}
   ok("예시 노트를 두지 않음", document.querySelectorAll("#noteList .note").length === 0 &&
     document.querySelectorAll("#noteList .nsample").length === 0);
   ok("빈 상태 안내 표시", !!document.querySelector("#noteList .empty"));
 
-  // ---------- 담당자 노트 (직접 작성) ----------
+  // ---------- 담당자 노트 (Supabase 저장) ----------
   var noteForm = document.getElementById("noteForm");
   var noteBy = document.getElementById("noteBy");
   var noteText = document.getElementById("noteText");
 
   ok("노트 입력창 존재", !!noteForm && !!noteBy && !!noteText);
+  ok("담당자에게는 작성 폼이 열림",
+    noteForm.hidden === false && document.getElementById("noteReadonly").hidden === true);
+  ok("작성자 이름이 계정으로 채워짐", noteBy.value.length > 0);
 
-  // 빈 내용은 저장되지 않는다
+  // 빈 내용은 저장되지 않는다 (서버로 요청도 나가지 않아야 한다)
   noteText.value = "   ";
   noteForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-  ok("빈 노트 저장 거부", document.getElementById("noteHint").className.indexOf("err") !== -1);
+  await sleep(150);
+  ok("빈 노트 저장 거부", document.getElementById("noteHint").className.indexOf("err") !== -1 &&
+    document.querySelectorAll("#noteList .note").length === 0);
 
   // 실제 저장
   noteBy.value = "정원 (인사노무)";
   noteText.value = "통상임금 판례 관련 급여 재산정 범위 확인 필요. 8/18 회의 안건으로 올립니다.";
   noteForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  await waitFor(function () {
+    return document.querySelectorAll("#noteList .note").length === 1;
+  }, 15000);
 
   var notes = document.querySelectorAll("#noteList .note");
   ok("노트 저장 1건", notes.length === 1);
@@ -510,18 +606,30 @@
   noteText.value = "산안법 개정 대응 체크리스트 초안 공유드립니다.";
   noteText.dispatchEvent(new KeyboardEvent("keydown",
     { key: "Enter", ctrlKey: true, bubbles: true, cancelable: true }));
+  await waitFor(function () {
+    return document.querySelectorAll("#noteList .note").length === 2;
+  }, 15000);
   ok("Ctrl+Enter 저장", document.querySelectorAll("#noteList .note").length === 2);
 
-  // localStorage 저장 확인
-  var savedNotes = null;
-  try { savedNotes = JSON.parse(localStorage.getItem("labor-dashboard-notes-local")); } catch (e) {}
-  ok("노트가 저장소에 남음", !!savedNotes && savedNotes.length === 2);
+  // 서버에 실제로 남았는지 대조한다.
+  // 화면만 갱신되고 끝나면 팀에 전달되지 않는데도 전달된 것처럼 보인다.
+  var serverNotes = await myRows("labor_notes?select=id,text,author_name,note_date");
+  ok("노트가 Supabase 에 저장됨", Array.isArray(serverNotes) && serverNotes.length === 2);
+  ok("작성자명이 서버에 기록됨", Array.isArray(serverNotes) &&
+    serverNotes.some(function (n) { return n.author_name === "정원 (인사노무)"; }));
+  ok("보고 있는 날짜로 기록됨", Array.isArray(serverNotes) &&
+    serverNotes.every(function (n) { return /^\d{4}-\d{2}-\d{2}$/.test(n.note_date); }));
+  ok("노트를 localStorage 에 두지 않음",
+    !localStorage.getItem("labor-dashboard-notes-local"));
 
   // 삭제
   document.querySelector("#noteList .ndel").click();
+  await waitFor(function () {
+    return document.querySelectorAll("#noteList .note").length === 1;
+  }, 15000);
   ok("노트 삭제", document.querySelectorAll("#noteList .note").length === 1);
-
-  try { localStorage.removeItem("labor-dashboard-notes-local"); } catch (e) {}
+  var afterDel = await myRows("labor_notes?select=id");
+  ok("삭제가 서버에도 반영", Array.isArray(afterDel) && afterDel.length === 1);
 
   // ---------- 폰트 ----------
   ok("Pretendard 우선 폰트 스택",
@@ -561,6 +669,74 @@
 
   btn.click();   // 라이트 복귀
   ok("라이트 복귀", document.documentElement.getAttribute("data-theme") === before);
+
+  // ---------- 수집 상태 · 예시 표시 ----------
+  // 아직 수집(태스크 5)이 붙지 않았으므로 "없음"이 정직한 표시다
+  ok("마지막 수집 상태 문구",
+    /마지막 수집/.test(document.getElementById("lastRun").textContent));
+  ok("예시 항목에 예시 배지",
+    document.querySelectorAll("#cards .item .nsample").length > 0);
+  ok("예시 건수 안내가 배지 수와 일치", (function () {
+    var n = document.querySelectorAll("#cards .item .nsample").length;
+    return document.getElementById("sampleBar").textContent.indexOf(n + "건") !== -1;
+  })());
+  ok("실제 확인분에는 예시 배지가 없음", (function () {
+    // 판례 3건은 실제 사건번호를 쓴 확인분이다
+    return document.querySelectorAll('#cards .fcard[data-kind="prec"] .nsample').length === 0;
+  })());
+
+  // ---------- 권한 (팀원 계정) ----------
+  // 화면에서 폼을 감추는 것만으로는 칸막이가 되지 않는다. 서버가 거부해야 한다.
+  if (creds.memberEmail && creds.memberPw) {
+    document.getElementById("outBtn").click();
+    await waitFor(function () { return document.body.classList.contains("locked"); }, 15000);
+    ok("로그아웃하면 다시 잠김",
+      document.body.classList.contains("locked") &&
+      !sessionStorage.getItem("labor-dashboard-session") &&
+      document.querySelectorAll("#cards .item").length === 0);
+
+    submitAuth(creds.memberEmail, creds.memberPw);
+    var memberIn = await waitFor(function () {
+      return document.documentElement.getAttribute("data-loaded") === "1";
+    }, 25000);
+    ok("팀원 계정 로그인",
+      memberIn && /팀원/.test(document.getElementById("whoPill").textContent));
+    ok("팀원도 브리핑은 읽을 수 있음",
+      document.querySelectorAll("#cards .item").length === 12);
+    ok("팀원에게는 작성 폼이 닫힘",
+      document.getElementById("noteForm").hidden === true &&
+      document.getElementById("noteReadonly").hidden === false);
+    ok("팀원에게 남의 노트 삭제 버튼이 없음",
+      document.querySelectorAll("#noteList .note").length === 1 &&
+      document.querySelectorAll("#noteList .ndel").length === 0);
+
+    // 화면을 우회해 직접 써도 서버가 막아야 한다
+    var s2 = sess();
+    var wr = await fetch(SB_URL + "/rest/v1/labor_notes", {
+      method: "POST",
+      headers: {
+        apikey: SB_KEY, Authorization: "Bearer " + s2.access_token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        text: "팀원 우회 쓰기 시도", author: s2.user.id,
+        note_date: new Date().toISOString().slice(0, 10)
+      })
+    });
+    ok("팀원의 직접 쓰기를 RLS 가 거부 (HTTP " + wr.status + ")",
+      wr.status === 401 || wr.status === 403);
+
+    // 남이 쓴 노트는 지울 수 없다
+    var target = await myRows("labor_notes?select=id&limit=1");
+    if (target && target[0]) {
+      await fetch(SB_URL + "/rest/v1/labor_notes?id=eq." + target[0].id, {
+        method: "DELETE",
+        headers: { apikey: SB_KEY, Authorization: "Bearer " + s2.access_token }
+      });
+      var still = await myRows("labor_notes?select=id");
+      ok("작성자가 아니면 삭제되지 않음", Array.isArray(still) && still.length === 1);
+    }
+  }
 
   // ---------- 결과 배너 ----------
   var passed = log.filter(function (x) { return x.pass; }).length;

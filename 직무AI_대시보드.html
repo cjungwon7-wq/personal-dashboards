@@ -500,6 +500,8 @@ main{padding-top:var(--s-lg);padding-bottom:var(--s-section)}
 .notecard{--rule:#6E5D57;--head-fg:#FFFCFA;--accent:#5C4A44}
 /* 노트 작성 */
 .noteform{display:flex;flex-direction:column;gap:var(--s-xs);margin-bottom:var(--s-md)}
+/* display:flex 가 HTML hidden 속성을 덮으므로 명시한다 (팀원 계정에서 폼을 감출 때) */
+.noteform[hidden]{display:none}
 .ninput,.ntextarea{
   width:100%;font-family:inherit;font-size:15px;line-height:1.6;color:var(--ink);
   background:var(--canvas);
@@ -570,15 +572,96 @@ main{padding-top:var(--s-lg);padding-bottom:var(--s-section)}
   /* 반짝임은 끄고 은은한 정지 상태로 남긴다 */
   .band::before,.band::after{opacity:.35}
 }
+
+/* ---------- 로그인 게이트 ----------
+   읽기에도 로그인이 필요하다 (PRD 6항). 다만 화면을 가리는 것은 칸막이가 아니다 —
+   실제로 막는 것은 RLS 이고, 이 게이트는 그 사실을 사용자에게 보여줄 뿐이다.
+   로그인하지 않으면 요청 자체를 보내지 않는다. */
+body.locked>.band,body.locked>.wrap,body.locked>.foot{display:none}
+/* 세션을 확인하는 순간에는 게이트도 본문도 띄우지 않는다 — 깜빡임 방지 */
+body.booting .gate{visibility:hidden}
+
+.gate{
+  position:fixed;inset:0;z-index:50;overflow:auto;
+  display:flex;align-items:center;justify-content:center;
+  padding:var(--s-lg);
+  color:var(--band-ink);
+  background-color:var(--band-1);
+  background-image:
+    radial-gradient(125% 95% at 88% -12%, var(--mesh-warm)  0%, transparent 62%),
+    radial-gradient( 95% 85% at  3%  16%, var(--mesh-cream) 0%, transparent 70%),
+    radial-gradient(115% 115% at 10% 120%, var(--mesh-mauve) 0%, transparent 66%);
+}
+.gatecard{
+  position:relative;z-index:1;
+  width:100%;max-width:400px;
+  background:var(--surface-card);color:var(--ink);
+  border:1px solid var(--hairline);border-radius:24px;
+  padding:var(--s-lg);
+}
+/* 키커는 밴드 위 밝은 톤이 기본이라 흰 카드에서는 읽히지 않는다 — 카드용으로 되돌린다 */
+.gatecard .kicker{margin:0 0 var(--s-xxs);color:var(--muted)}
+.gatecard h2{margin:0 0 var(--s-xs);font-size:22px;font-weight:700;letter-spacing:-0.02em}
+.gatenote{margin:0 0 var(--s-md);font-size:14px;line-height:1.7;color:var(--muted)}
+.gatefield{display:block;margin-bottom:var(--s-sm)}
+.gatefield>span{display:block;margin-bottom:var(--s-xxs);
+                font-size:13px;font-weight:600;color:var(--body)}
+.gate .btn-primary{width:100%;justify-content:center;margin-top:var(--s-xs)}
+.gatehint{margin:var(--s-sm) 0 0;font-size:13px;line-height:1.6;color:var(--muted);min-height:1.2em}
+.gatehint.err{color:var(--warning);font-weight:600}
+.gatefoot{margin:var(--s-md) 0 0;padding-top:var(--s-sm);
+          border-top:1px solid var(--hairline-soft);
+          font-size:12.5px;line-height:1.7;color:var(--muted-soft)}
+
+/* 헤더의 계정 표시 */
+.acct{display:flex;align-items:center;gap:var(--s-xs);flex-wrap:wrap}
+.who{font-size:13px;font-weight:600;color:var(--band-ink);
+     border:1px solid color-mix(in srgb,var(--band-ink) 30%,transparent);
+     border-radius:var(--r-pill);padding:3px 12px}
+.who .role{color:var(--band-mute);font-weight:500}
+
+/* 담당자가 아니면 노트를 읽기만 한다 (PRD 6항 권한 모델) */
+.readonly{margin:0 0 var(--s-md);font-size:13.5px;line-height:1.7;color:var(--muted)}
 </style>
 </head>
-<body>
+<body class="booting locked">
+
+<!-- 로그인 게이트 — 가입 기능은 두지 않는다. 계정은 관리자가 발급한다 (PRD 6항) -->
+<div class="gate" id="authGate">
+  <form class="gatecard" id="authForm" autocomplete="on">
+    <p class="kicker">Labor Law Briefing</p>
+    <h2>인사노무 법령 브리핑</h2>
+    <p class="gatenote">
+      인사팀 공용 화면입니다. 담당자 코멘트가 담기므로 열람에도 로그인이 필요합니다.
+      계정은 관리자가 발급합니다.
+    </p>
+
+    <label class="gatefield" for="authEmail"><span>이메일</span>
+      <input type="email" id="authEmail" class="ninput" autocomplete="username"
+             placeholder="발급받은 계정" required></label>
+    <label class="gatefield" for="authPw"><span>비밀번호</span>
+      <input type="password" id="authPw" class="ninput" autocomplete="current-password"
+             placeholder="비밀번호" required></label>
+
+    <button type="submit" class="btn btn-primary" id="authBtn">로그인</button>
+    <p class="gatehint" id="authHint">계정이 없으면 인사팀 관리자에게 요청하세요.</p>
+
+    <p class="gatefoot">
+      이 화면은 법률 자문이 아닙니다. 판단 근거는 항상 원문을 확인하세요.
+      비밀번호를 잊으면 관리자가 재설정합니다.
+    </p>
+  </form>
+</div>
 
 <header class="band">
   <div class="wrap">
     <div class="brandrow">
       <span class="mark">인사노무 법령 브리핑</span>
-      <button type="button" id="themeBtn" class="btn btn-secondary" aria-pressed="false">다크 모드</button>
+      <span class="acct">
+        <span class="who" id="whoPill" hidden></span>
+        <button type="button" id="themeBtn" class="btn btn-secondary" aria-pressed="false">다크 모드</button>
+        <button type="button" id="outBtn" class="btn btn-secondary">로그아웃</button>
+      </span>
     </div>
 
     <div class="center">
@@ -654,6 +737,12 @@ main{padding-top:var(--s-lg);padding-bottom:var(--s-section)}
   <section class="notecard" id="noteCard">
     <div class="fhead"><h2>담당자 노트</h2><span class="fcount"></span><button type="button" class="foldbtn" aria-expanded="true">&#9662;</button></div>
 
+    <!-- 담당자가 아니면 폼 대신 이 안내가 뜬다. 화면만 감추는 게 아니라
+         RLS 가 팀원의 쓰기를 거부한다 (PRD 6항 권한 모델) -->
+    <p class="readonly" id="noteReadonly" hidden>
+      노트 작성은 <strong>담당자 계정</strong>만 할 수 있습니다. 지금 계정은 읽기 전용입니다.
+    </p>
+
     <form class="noteform" id="noteForm">
       <input type="text" id="noteBy" class="ninput" maxlength="30"
              placeholder="작성자 (예: 김민서 / 인사기획)" autocomplete="off">
@@ -683,169 +772,197 @@ main{padding-top:var(--s-lg);padding-bottom:var(--s-section)}
 "use strict";
 
 /* -----------------------------------------------------------
-   예시 데이터. 태스크 3에서 Supabase 조회 결과로 통째로 교체한다.
-   실제 법령 내용이 아니라 화면 확인용 자리표시자다.
+   데이터는 Supabase 에서 온다 (PRD 6항). 태스크 1의 예시 상수는 여기서 사라졌고,
+   같은 내용이 labor_items 테이블에 들어가 있다.
 
-   point   = 결론 문장. 금액·요율·한도 같은 수치를 문장 안에 넣는다
-             (수치를 타일로 떼어내면 정보가 아니라 장식이 된다).
-             판례 → 판시사항을 한 문장으로 · 해석 → 회답의 결론
-   sum     = 배경 문장 (2줄까지 보이고 나머지는 접힘)
-   detail  = 펼쳤을 때 나오는 원문 필드들 (판결요지·회답·이유·참조조문 등)
+   로그인 전에는 요청을 보내지 않는다. 보내더라도 RLS 읽기 정책이 authenticated
+   로 제한돼 있어 anon 으로는 한 줄도 내려오지 않는다 — 화면을 가리는 것만으로는
+   칸막이가 되지 않기 때문이다.
+
+   서버 행은 아래 toItem() 이 태스크 1의 화면 구조로 바꿔 준다.
+   렌더 코드(buildItem·renderCard·renderHr)는 한 줄도 고치지 않았다.
+     point   = 결론 문장 (body_point)
+     sum     = 배경 문장 (body_sum)
+     detail  = 펼쳤을 때 나오는 원문 필드들 (jsonb 배열)
    ----------------------------------------------------------- */
-var SAMPLE = {
-  law:[
-    {tag:"개정", title:"근로기준법 시행령 일부개정", ref:"제53조", at:"2026-08-12", src:"법제처",
-     eff:"2026-11-01",
-     point:"연장근로 한도를 주 12시간으로 산정하도록 명확히 하고, 보상휴가는 근로자대표와 서면 합의를 거치도록 했다.",
-     sum:"산정 단위를 두고 해석이 갈렸던 부분을 시행령에 명시했다. 상시 5명 이상 사업장에 적용되며 2026년 11월 1일 시행된다.",
-     detail:[["주요내용","제6장의 연장근로 산정 기준을 주 단위로 명시하고, 보상휴가 부여 시 근로자대표와의 서면 합의 절차를 신설했다."],
-             ["부칙","공포 후 3개월이 경과한 날부터 시행한다."]]},
-    {tag:"공포", title:"산업안전보건법 일부개정법률 공포", ref:"제63조", at:"2026-08-07", src:"법제처",
-     eff:"2027-01-01",
-     point:"도급인의 안전조치 의무가 관계수급인 근로자까지 확대되고, 위반 시 과태료 상한이 5,000만원으로 올랐다.",
-     sum:"안전보건관리체계 구축 의무 대상도 상시 50명 이상 사업장으로 넓어졌다.",
-     detail:[["주요내용","도급 사업에서 관계수급인 근로자에 대한 안전조치 의무를 명시하고, 위반 시 과태료 기준을 상향했다."]]},
-    {tag:"개정", title:"최저임금법 시행령 일부개정", ref:"제6조", at:"2026-07-30", src:"법제처",
-     eff:"2027-01-01",
-     point:"상여금·복리후생비의 최저임금 산입 제외 비율이 0%가 되어 전액 산입된다.",
-     sum:"단계적으로 축소돼 온 산입 제외 비율이 종료되는 구조다.",
-     detail:[["주요내용","상여금·복리후생비의 산입 비율 산정 방식을 조정했다."]]}
-  ],
-  notice:[
-    /* 이 한 건은 실제 확인분이다 (2026-08-13). 고시번호·금액·상세링크 모두 검증했다. */
-    {tag:"고시", title:"2026년 적용 최저임금 고시",
-     ref:"고용노동부 고시 제2025-47호", at:"2025-08-05", src:"고용노동부",
-     eff:"2026-01-01",
-     url:"https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000262710",
-     point:"2026년 최저임금은 시간급 10,320원으로, 2025년보다 290원(2.9%) 올랐다. 주 40시간 기준 월급은 209시간을 적용해 2,156,880원이다.",
-     sum:"2026년 1월 1일부터 12월 31일까지 적용되며, 모든 사업장에서 시간급 10,320원 이상을 지급해야 한다.",
-     detail:[["적용기간","2026년 1월 1일 ~ 2026년 12월 31일"],
-             ["월 환산 기준","시간급 10,320원 × 월 209시간 = 2,156,880원"],
-             ["실무 확인","급여 테이블 · 최저임금 미달자 점검 · 수습 감액 적용 여부"]]},
-    /* 아래 두 건은 아직 예시다 — 고시번호를 확인하지 못해 슬롯을 비웠다.
-       지어낸 번호를 넣으면 실제 인용처럼 보이고 링크도 빈 결과로 떨어진다. */
-    {tag:"고시", title:"장애인 의무고용률 고시", at:"2026-08-01", src:"고용노동부",
-     eff:"2027-01-01",
-     point:"민간 의무고용률은 3.1%, 부담기초액은 미달 1인당 월 1,320,000원이다.",
-     sum:"상시 50명 이상 사업주가 대상이며, 부담금은 미달 인원에 월 단위로 산정된다.",
-     detail:[["실무 확인","상시근로자 수 산정 기준일과 부담금 신고 일정"]]},
-    {tag:"고시", title:"산업재해보상보험 요율 고시", at:"2026-07-24", src:"고용노동부",
-     eff:"2027-01-01",
-     point:"업종 평균 요율은 1.53%, 출퇴근재해 요율은 전 업종 0.10%다.",
-     sum:"업종별 요율이 조정됐으므로 사업장 업종 코드와 적용 요율을 다시 대조해야 한다.",
-     detail:[["실무 확인","사업장 업종 코드와 적용 요율 대조"]]}
-  ],
-  /* 판례는 실제 사건번호를 쓴다 — 사건번호로 검색해야 그 판례 하나로 정확히 떨어진다.
-     지어낸 번호를 넣으면 링크가 빈 검색 결과로 떨어져 쓸모가 없다. (2026-08-13 확인) */
-  prec:[
-    {tag:"전합", title:"통상임금 판단기준 변경 — 고정성 요건 제외",
-     ref:"2020다247190", at:"2024-12-19", src:"대법원 전원합의체",
-     point:"재직조건·근무일수 조건이 붙은 상여금도 통상임금에 해당한다. 통상임금 판단에서 '고정성'을 빼고 소정근로 대가성·정기성·일률성만으로 본다.",
-     sum:"2013년 12월 2012다89399 전원합의체 판결 이후 약 11년 만에 판단기준이 바뀌었다. 임금체계 전반에 영향을 준다.",
-     detail:[["판시사항","특정 시점 재직자에게만 지급하는 조건, 일정 근무일수 충족을 요구하는 조건이 붙은 임금의 통상임금성이 문제된 사건"],
-             ["변경된 기준","고정성을 개념 징표에서 제외하고 소정근로 대가성·정기성·일률성으로 판단한다"],
-             ["종전 판결","대법원 2013. 12. 18. 선고 2012다89399 전원합의체 판결"]]},
-    {tag:"판결", title:"도급의 실체가 인정된 사례 — 금호타이어",
-     ref:"2015다32905", at:"2017-12-22", src:"대법원",
-     point:"하청이 별도 법인으로 사업자등록·4대보험 가입을 하고 독자 취업규칙에 따라 근태관리권을 행사했다면 사업주로서의 실체가 인정된다.",
-     sum:"도급이냐 파견이냐는 계약서 문구가 아니라 하청의 독립성 실태로 갈린다.",
-     detail:[["실체 인정 요소","원청과 별도 회사 설립 및 사업자등록 · 4대보험 가입 · 독자적 취업규칙에 근거한 근태관리권 행사"]]},
-    {tag:"판결", title:"불법파견이 인정된 사례 — 현대미포조선",
-     ref:"2005다75088", at:"2008-07-10", src:"대법원",
-     point:"하청이 약 25년간 원청 업무만 도급받아 수행하면서 업무수행의 독자성과 사업경영의 독립성을 갖추지 못했다면 불법파견이다.",
-     sum:"위 금호타이어 사건과 대조되는 결론이다. 두 판례를 함께 봐야 경계가 보인다.",
-     detail:[["판단 요소","약 25년간 원청 업무만 수행 · 업무수행의 독자성 없음 · 사업경영의 독립성 없음"]]}
-  ],
-  interp:[
-    {tag:"해석", title:"육아휴직 분할 사용 관련 해석", at:"2026-08-10", src:"고용노동부",
-     point:"육아휴직 분할 사용은 기간이 연속되지 않아도 각 기간을 1회로 산정한다.",
-     sum:"실제 개시·종료를 기준으로 세므로, 중간에 복직했다면 별개 횟수로 본다.",
-     detail:[["질의요지","육아휴직을 나누어 사용할 때 횟수를 어떻게 산정하는지"],
-             ["회답","실제 개시·종료를 기준으로 각 기간을 1회로 산정한다."],
-             ["관련법령","남녀고용평등과 일·가정 양립 지원에 관한 법률 제19조"]]},
-    {tag:"해석", title:"연차유급휴가 산정 기준 해석", at:"2026-08-04", src:"고용노동부",
-     point:"연차 출근율을 산정할 때 육아휴직 기간은 출근한 것으로 본다.",
-     sum:"법령상 보호되는 휴직은 결근으로 처리하지 않는다.",
-     detail:[["회답","법령상 보호되는 휴직 기간은 출근한 것으로 보아 산정한다."],
-             ["관련법령","근로기준법 제60조"]]},
-    {tag:"해석", title:"포괄임금제 유효성 관련 해석", at:"2026-07-26", src:"고용노동부",
-     point:"법정수당에 미달하는 포괄임금 약정은 그 차액을 지급해야 한다.",
-     sum:"약정 금액이 법정 기준에 못 미치는 부분은 무효로 본다.",
-     detail:[["회답","약정 금액이 법정 기준에 미달하는 부분은 무효이며 차액을 지급해야 한다."],
-             ["관련법령","근로기준법 제56조"]]}
-  ],
-  /* 산업별 HR 이슈 — 아래 항목은 실제 출처를 읽고 요약한 것이다 (2026-08-13 확인).
-     법령 카드처럼 원문 요지 필드가 오는 게 아니라 내가 요약하므로
-     AI 요약 라벨을 붙이고, url 로 "요약한 그 출처"에 바로 연결한다.
-       at  = 확인해서 브리핑에 올린 날짜
-       eff = 시행일 (출처에 명시된 것만 넣는다) */
-  /* near  = 우리 회사(증권사)와의 근접도  3 증권·자산운용 직접 / 2 금융지주·핀테크 / 1 금융 전반 / 0 무관
-     risk  = 리스크 강도                 3 소송·제재·파업 / 2 갈등·입법 / 1 실태·통계
-     scale = 기업 규모                   3 업계 상위·대기업 / 2 중견 / 1 일반
-     상단 정렬 = near*4 + risk*2 + scale (renderHr 에서 계산) */
-  hr:[
-    {title:"미래에셋증권 노조, 경영성과급 지급 소송 예고",
-     at:"2026-08-13", src:"뉴스토마토", inds:["금융"],
-     near:3, risk:3, scale:3,
-     url:"http://www.newstomato.com/ReadNews.aspx?no=1307229",
-     point:"노조가 8월 15~21일 소송 위임장을 접수하고 23일 서울중앙지방법원에 경영성과급 지급 청구 소송을 제기할 예정이다. WM부문 성과보상제도 변경에는 효력정지 가처분도 신청한다.",
-     sum:"대우증권 시절 체결한 16년 전 노사 합의를 근거로, 지난해 실적이 지급 기준을 충족했는데도 회사가 지급을 거부했다는 주장이다. 국내 증권사 최초로 상반기 순이익 2조원 돌파가 유력한 상황에서 갈등이 격화됐다."},
+var DATA = { law:[], notice:[], prec:[], interp:[], hr:[], notes:[] };
+var lastRun = null;
 
-    {title:"한국투자증권 노사 갈등 — 사상 최대 실적과 보상의 괴리",
-     at:"2026-08-13", src:"경인방송", inds:["금융"],
-     near:3, risk:2, scale:3,
-     url:"https://news.ifm.kr/news/articleView.html?idxno=471249",
-     point:"지난해 순이익 2조원대 사상 최대 실적을 냈는데 보상이 따라오지 않았다는 것이 갈등의 핵심이다. 증권가 전반이 긴장하고 있다.",
-     sum:"주식 거래대금 증가, 투자심리 회복, 자산관리·IB 부문 실적 개선이 실적을 끌어올렸다. 금융권은 역대 최대 실적과 물가 상승률을 근거로 임금 인상과 성과급 확대를 동시에 압박하는 분위기다."},
+/* ---------- Supabase ----------
+   라이브러리 없이 PostgREST · Auth REST 를 직접 부른다 (CDN 금지 규칙).
+   코드에 둘 수 있는 키는 publishable 뿐이다. service 키를 여기 넣으면
+   RLS 를 통째로 우회하는 열쇠를 공개하는 셈이 된다. */
+var SB_URL = "https://qplxvfwuobvnobqpivbm.supabase.co";
+var SB_KEY = "sb_publishable_zuCioXoqOBTJM06bz9VC3w_qtfXJEjm";
 
-    {title:"카카오페이 과징금 129.8억 — 임직원 5명 징계",
-     at:"2026-08-13", src:"아시아경제", inds:["금융"],
-     near:2, risk:3, scale:3,
-     url:"https://www.asiae.co.kr/article/2026070917002117616",
-     point:"고객 동의 없이 개인신용정보를 제3자에게 제공한 건으로 과징금 129억7,600만원과 과태료 4,800만원, 기관경고를 통보받았다. 임원 2명은 주의적 경고, 퇴직 직원 3명은 감봉 2명·견책 1명이다.",
-     sum:"정보위탁 관련 내부통제 구축 의무를 소홀히 했다는 판단이다. 금융·정보보호 당국에 경찰 수사까지 겹쳐 삼중 제재 가능성이 거론된다. 내부통제 위반이 임직원 개인 징계로 이어진 사례라 인사 실무에 직접 걸린다."},
+/* 세션은 sessionStorage 에만 둔다 — 사내 공용 PC 에서 다음 사람에게
+   그대로 열려 있으면 로그인을 요구한 의미가 없다. */
+var SESSION_KEY = "labor-dashboard-session";
+var session = null;   /* {access_token, refresh_token, user} */
+var me = null;        /* {id, email, name, role} */
 
-    {title:"금융노조 9월 4일 총파업 예고 — 주 4.5일제가 최대 쟁점",
-     at:"2026-08-13", src:"EBN", inds:["금융"],
-     near:1, risk:3, scale:3,
-     url:"https://www.ebn.co.kr/news/articleView.html?idxno=1720010",
-     point:"임금 인상률이 노조 6% 대 사용자 2.5%로 갈렸다. 노조는 임금 삭감 없는 주 4.5일제와 정년 연장·임금피크제 폐지를 함께 요구하고 있다.",
-     sum:"4월부터 18차례 교섭했으나 6월 산별중앙교섭이 결렬되고 중앙노동위원회 조정도 중지됐다. 금융기관 지방 이전 저지와 계열사 간 복지 형평성도 쟁점에 올랐다. 사용자 측은 인건비 부담과 점포 운영 효율성 저하를 이유로 수용이 어렵다는 입장이다."},
+function storeSession(s){
+  session = s;
+  try {
+    if (s) sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    else   sessionStorage.removeItem(SESSION_KEY);
+  } catch(e){}
+}
 
-    {title:"자동차·조선에 번진 'N% 성과급' 요구",
-     at:"2026-08-13", src:"파이낸셜뉴스", inds:["제조"],
-     near:0, risk:2, scale:3,
-     url:"https://www.fnnews.com/news/202605211812266005",
-     point:"영업이익의 일정 비율을 성과급으로 고정 지급하라는 요구가 자동차·조선·IT·통신 업종으로 확산되고 있다.",
-     sum:"현대차 노조는 순이익의 30% 성과급 지급과 상여금 750%→800% 인상을 요구했다. AI·로봇 도입 이후의 고용 안정도 올해 핵심 쟁점으로 올라왔다."},
+function restoreSession(){
+  try {
+    var s = JSON.parse(sessionStorage.getItem(SESSION_KEY));
+    if (s && s.access_token && s.user) { session = s; return s; }
+  } catch(e){}
+  return null;
+}
 
-    {title:"게임업계 포괄임금제 폐지가 대세로",
-     at:"2026-08-13", src:"비즈니스포스트", inds:["IT"],
-     url:"https://www.businesspost.co.kr/BP?command=article_view&num=418056",
-     point:"라이온하트스튜디오가 2026년 1월부터 비포괄임금제를 전면 도입해 실제 근무시간에 따라 수당을 지급한다. 업계 전반으로 확산되는 흐름이다.",
-     sum:"고용노동부는 2026년 5월 포괄임금 오남용 방지 지침 시행 두 달을 맞아 업계 간담회를 열고 근로시간 기록·관리 강화와 미지급 수당 지급 원칙을 강조했다. 유사 포괄임금을 유지하는 곳은 별도로 주목받고 있다."},
+function authFetch(path, opts){
+  opts = opts || {};
+  var h = {};
+  if (opts.headers) for (var k in opts.headers) h[k] = opts.headers[k];
+  h.apikey = SB_KEY;
+  h["Content-Type"] = "application/json";
+  if (session && session.access_token) h.Authorization = "Bearer " + session.access_token;
+  opts.headers = h;
+  return fetch(SB_URL + path, opts);
+}
 
-    {title:"새벽배송 시간 제한 생활물류법 발의 — 현장 반발",
-     at:"2026-08-13", src:"인사이트", inds:["유통"],
-     url:"https://www.insight.co.kr/news/566323",
-     point:"새벽배송 시간을 제한하는 생활물류법 개정안이 발의되면서 유통·물류 현장에서 반발이 잇따르고 있다.",
-     sum:"노사 협의와 사회적 타협을 건너뛰고 입법으로 규제를 강행한다는 비판이 제기됐다. 배송 시간대가 바뀌면 교대 편성과 심야 인력 운영을 다시 짜야 한다."},
+/* 만료된 토큰을 갱신한다. 로컬 시계가 어긋나 401 이 나는 경우도 여기서 흡수한다. */
+function refreshToken(){
+  if (!session || !session.refresh_token) return Promise.resolve(false);
+  return fetch(SB_URL + "/auth/v1/token?grant_type=refresh_token", {
+    method:"POST",
+    headers:{ apikey:SB_KEY, "Content-Type":"application/json" },
+    body: JSON.stringify({ refresh_token: session.refresh_token })
+  }).then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      if (!j || !j.access_token) return false;
+      j.user = j.user || (session && session.user);
+      storeSession(j);
+      return true;
+    })
+    .catch(function(){ return false; });
+}
 
-    {title:"조선업 맞춤형 외국인력, 강제노동 논란",
-     at:"2026-08-13", src:"헤럴드경제", inds:["제조"],
-     url:"https://biz.heraldcorp.com/article/10834131",
-     point:"조선업 인력 확보를 위한 '울산형 고용허가제' 시범사업에서, 일부 협력사가 근무지 변경 미준수 시 벌금을 부과하는 조건을 두어 강제노동 논란이 일었다.",
-     sum:"원청의 기업 책무 문제로 번지고 있다. 협력사 계약 조건까지 점검 범위에 들어간다."},
+/* 401 이면 토큰을 한 번 갱신해 다시 시도한다. 한 번만 재시도한다 —
+   갱신에도 실패하면 세션이 실제로 끝난 것이므로 로그인 화면으로 돌려야 한다. */
+function rest(path, opts){
+  return authFetch(path, opts).then(function(r){
+    if (r.status !== 401) return r;
+    return refreshToken().then(function(renewed){
+      return renewed ? authFetch(path, opts) : r;
+    });
+  });
+}
 
-    {title:"유통·물류 야간노동 실태 — 도매유통 70.2%가 교대근무",
-     at:"2026-08-13", src:"월간노동법률", inds:["유통"],
-     url:"https://www.worklaw.co.kr/main2022/view/view.asp?bi_pidx=37347",
-     point:"고용노동부 감독 결과 도매·유통업은 70.2%가 교대근무 형태였고, 1일당 근무시간은 10.1시간으로 주간 근무자보다 길었다.",
-     sum:"야간노동 형태는 교대근무 64.8%, 야간 전담 35.2%였다. 야간노동을 하는 이유로는 수당 등 경제적 이유가 55.8%로 가장 많았다."}
-  ],
-  /* 담당자 노트는 예시를 두지 않는다 — 직접 쓴 것만 남는다 */
-  notes:[]
-};
+function rows(path){
+  return rest("/rest/v1/" + path).then(function(r){
+    if (!r.ok) throw new Error(path + " → " + r.status);
+    return r.json();
+  });
+}
+
+/* 서버 kind ↔ 화면 카드 키 */
+var KIND_OF = { "법령":"law", "고시":"notice", "판례":"prec",
+                "행정해석":"interp", "HR이슈":"hr" };
+
+function toItem(r){
+  return {
+    rowId: r.id,
+    tag:   r.tag || null,
+    title: r.title,
+    ref:   r.ref || null,
+    point: r.body_point || null,
+    sum:   r.body_sum || null,
+    /* jsonb 에 [["라벨","내용"], …] 로 저장돼 있어 buildDetail 이 그대로 받는다 */
+    detail: (Object.prototype.toString.call(r.detail) === "[object Array]") ? r.detail : [],
+    src:   r.source || "",
+    url:   r.doc_url || null,
+    at:    r.published_on || "",
+    eff:   r.effective_on || null,
+    inds:  r.industries || [],
+    near:  r.near || 0,
+    risk:  r.risk || 0,
+    scale: r.scale || 0,
+    /* 사람이 넣은 예시인지. 실제 확인분과 한 목록에 섞이면 어느 쪽이 진짜인지 알 수 없다 */
+    sample: !!r.is_sample
+  };
+}
+
+function toNote(r){
+  return {
+    id: r.id,
+    text: r.text,
+    by: r.author_name || "담당자",
+    at: r.created_at,                                  /* 표시용 작성 시각 */
+    on: r.note_date || String(r.created_at).slice(0,10), /* 어느 날짜의 노트인지 */
+    /* 지울 수 있는 것은 자기가 쓴 노트뿐이다. 화면에서 감추는 것과 별개로
+       RLS 의 delete 정책도 author = auth.uid() 로 막는다 */
+    mine: !!(me && r.author === me.id)
+  };
+}
+
+/* 첫 로드에 필요한 것을 한 번에 가져온다.
+   labor_members 는 본인 행만 내려오므로(RLS) 역할 판정에 그대로 쓴다. */
+function loadAll(){
+  return Promise.all([
+    rows("labor_items?select=*&order=published_on.desc"),
+    rows("labor_notes?select=*&order=created_at.desc"),
+    rows("labor_runs?select=finished_at,ok,inserted_count&order=started_at.desc&limit=1"),
+    rows("labor_members?select=role,display_name")
+  ]).then(function(res){
+    var items = res[0], notes = res[1], runs = res[2], mem = res[3];
+
+    DATA.law = []; DATA.notice = []; DATA.prec = []; DATA.interp = []; DATA.hr = [];
+    items.forEach(function(r){
+      var k = KIND_OF[r.kind];
+      if (k && DATA[k]) DATA[k].push(toItem(r));
+    });
+
+    /* 역할 행이 없으면 팀원으로 본다 — 기본값을 권한이 넓은 쪽에 두지 않는다 */
+    var m = mem && mem[0];
+    me.role = (m && m.role) || "팀원";
+    me.name = (m && m.display_name) || me.email;
+
+    DATA.notes = notes.map(toNote);
+    lastRun = (runs && runs[0]) ? runs[0] : null;
+  });
+}
+
+/* ---------- 로그인 ----------
+   가입 기능은 만들지 않는다. 계정은 관리자가 Supabase 대시보드에서 발급한다
+   (PRD 6항). 자유 가입은 사내 문서 성격상 부적절하고, 이 프로젝트는
+   mailer_autoconfirm 이 꺼져 있어 가입 API 가 확인 메일에서 막히기도 한다. */
+function signIn(email, pw){
+  return fetch(SB_URL + "/auth/v1/token?grant_type=password", {
+    method:"POST",
+    headers:{ apikey:SB_KEY, "Content-Type":"application/json" },
+    body: JSON.stringify({ email:email, password:pw })
+  }).then(function(r){
+    return r.json().then(function(j){
+      if (!r.ok) throw new Error(j.error_description || j.msg || j.error || "로그인 실패");
+      return j;
+    });
+  }).then(function(j){
+    storeSession(j);
+    me = { id:j.user.id, email:j.user.email, name:j.user.email, role:"팀원" };
+    return j;
+  });
+}
+
+function signOut(){
+  /* 서버 세션 해지는 실패해도 진행한다 — 로컬 토큰을 지우는 것이 먼저다 */
+  var done = session
+    ? rest("/auth/v1/logout", { method:"POST" }).catch(function(){})
+    : Promise.resolve();
+  return done.then(function(){
+    storeSession(null);
+    session = null; me = null;
+    DATA.law = []; DATA.notice = []; DATA.prec = []; DATA.interp = [];
+    DATA.hr = []; DATA.notes = [];
+  });
+}
 
 /* HR 이슈는 기사라 법제처가 아니라 뉴스 검색으로 보낸다.
    태스크 5 에서 수집한 기사 원문 URL 로 대체된다. */
@@ -992,6 +1109,9 @@ function buildItem(it, kind){
      태스크 5 에서 API 필드(사건번호·안건번호·발령번호)로 채운다. */
   if (it.ref) head.appendChild(el("span","iref",it.ref));
   if (isFresh(it.at)) head.appendChild(el("span","new","NEW"));
+  /* 사람이 넣은 예시는 항목마다 표시한다 — 실제 확인분과 한 목록에 섞이면
+     어느 쪽이 근거로 쓸 수 있는 자료인지 구별되지 않는다 */
+  if (it.sample) head.appendChild(el("span","nsample","예시"));
   li.appendChild(head);
 
   /* 요지 — 결론 문장이 먼저, 배경 문장이 뒤에 온다. 수치엔 형광펜이 칠해진다 */
@@ -1103,7 +1223,7 @@ function priority(it){
 }
 
 function renderHr(){
-  var full = forView(SAMPLE.hr)
+  var full = forView(DATA.hr)
     .filter(function(it){ return (it.inds || []).indexOf(industry) !== -1; })
     .sort(function(a,b){
       var d = priority(b) - priority(a);
@@ -1140,7 +1260,7 @@ Array.prototype.forEach.call(document.querySelectorAll("#tabs .tab"), function(b
 
 function renderCard(card){
   var kind = card.getAttribute("data-kind");
-  var list = forView(SAMPLE[kind]);
+  var list = forView(DATA[kind]);
   var ul = card.querySelector(".items");
   var count = card.querySelector(".fcount");
   ul.textContent = "";
@@ -1156,29 +1276,18 @@ function renderCard(card){
 }
 
 /* ---------- 담당자 노트 ----------
-   지금은 이 브라우저에만 저장된다. 태스크 6 에서 Supabase + 담당자 권한으로 바꾼다.
-   내가 쓴 노트가 하나라도 있으면 예시 노트는 더 보여주지 않는다
-   (예시와 실제 기록이 한 목록에 섞이면 어느 쪽이 진짜인지 알 수 없다). */
-var NOTE_KEY = "labor-dashboard-notes-local";
+   팀 전원이 읽고 담당자만 쓴다 (PRD 3.5 · 6항 권한 모델).
+   화면에서 폼을 감추는 것은 안내일 뿐이고 실제 차단은 RLS 가 한다 —
+   insert 는 담당자 + 본인 명의일 때만, delete 는 작성자 본인만 통과한다.
 
-function readNotes(){
-  try {
-    var a = JSON.parse(localStorage.getItem(NOTE_KEY));
-    return Object.prototype.toString.call(a) === "[object Array]" ? a : [];
-  } catch(e){ return []; }
-}
-function writeNotes(a){
-  try { localStorage.setItem(NOTE_KEY, JSON.stringify(a)); } catch(e){}
-}
+   예시 노트는 두지 않는다. 팀에 전달되는 공지 성격이라 지어낸 문장이 섞이면 안 된다. */
 
 function renderNotes(){
   var upto = ymd(view);
-  var mine = readNotes();
-  var isSample = mine.length === 0;
-  var src = isSample ? (SAMPLE.notes || []) : mine;
-
-  var list = src.filter(function(n){ return String(n.at).slice(0,10) <= upto; })
-                .sort(function(a,b){ return String(b.at).localeCompare(String(a.at)); });
+  /* 필터는 note_date 로 한다 — 지난 날짜에 채워 넣은 노트도 그 날짜에서 보여야 한다 */
+  var list = (DATA.notes || [])
+    .filter(function(n){ return String(n.on).slice(0,10) <= upto; })
+    .sort(function(a,b){ return String(b.at).localeCompare(String(a.at)); });
 
   var ul = document.getElementById("noteList");
   var count = document.querySelector("#noteCard .fcount");
@@ -1196,15 +1305,11 @@ function renderNotes(){
 
     var meta = el("div","nmeta");
     meta.appendChild(el("span",null,n.by+" · "+stamp(n.at)));
-    if (isSample){
-      meta.appendChild(el("span","nsample","예시"));
-    } else {
+    /* 삭제 버튼은 자기 노트에만 붙인다. 남의 노트에 붙여도 서버가 거부한다 */
+    if (n.mine){
       var del = el("button","ndel","삭제");
       del.type = "button";
-      del.addEventListener("click", function(){
-        writeNotes(readNotes().filter(function(x){ return x.id !== n.id; }));
-        renderNotes();
-      });
+      del.addEventListener("click", function(){ removeNote(n, del); });
       meta.appendChild(del);
     }
     li.appendChild(meta);
@@ -1213,6 +1318,27 @@ function renderNotes(){
   count.textContent = list.length+"건";
 }
 
+function removeNote(n, btn){
+  var hint = document.getElementById("noteHint");
+  btn.disabled = true;
+  return rest("/rest/v1/labor_notes?id=eq."+encodeURIComponent(n.id), { method:"DELETE" })
+    .then(function(r){
+      if (!r.ok) throw new Error("삭제하지 못했습니다 ("+r.status+")");
+      DATA.notes = DATA.notes.filter(function(x){ return x.id !== n.id; });
+      renderNotes();
+      return true;
+    })
+    .catch(function(e){
+      btn.disabled = false;
+      hint.textContent = e.message;
+      hint.className = "nhint err";
+      return false;
+    });
+}
+
+/* 저장은 서버 응답을 확인한 뒤에 화면에 반영한다.
+   낙관적으로 먼저 그리면 권한이 없어 거부됐을 때도 저장된 것처럼 보인다 —
+   팀에 전달됐다고 오해하면 안 되는 화면이다. */
 function saveNote(){
   var byEl = document.getElementById("noteBy");
   var txEl = document.getElementById("noteText");
@@ -1223,30 +1349,44 @@ function saveNote(){
     hint.textContent = "내용을 입력해 주세요.";
     hint.className = "nhint err";
     txEl.focus();
-    return false;
+    return Promise.resolve(false);
+  }
+  if (!me || me.role !== "담당자"){
+    hint.textContent = "노트 작성은 담당자 계정만 할 수 있습니다.";
+    hint.className = "nhint err";
+    return Promise.resolve(false);
   }
 
-  /* 보고 있는 날짜에 기록한다 — 깜빡한 날도 채워 넣을 수 있게 */
-  var now = new Date();
-  var at = new Date(view.getFullYear(), view.getMonth(), view.getDate(),
-                    now.getHours(), now.getMinutes(), now.getSeconds());
-
-  var list = readNotes();
-  list.push({
-    id: String(at.getTime()) + "-" + Math.floor(Math.random()*100000),
-    text: text,
-    by: byEl.value.trim() || "담당자",
-    at: at.getFullYear()+"-"+pad(at.getMonth()+1)+"-"+pad(at.getDate())+
-        "T"+pad(at.getHours())+":"+pad(at.getMinutes())+":"+pad(at.getSeconds())
-  });
-  writeNotes(list);
-
-  txEl.value = "";
-  hint.textContent = "저장했습니다.";
+  hint.textContent = "저장하는 중…";
   hint.className = "nhint";
-  renderNotes();
-  txEl.focus();
-  return true;
+
+  return rest("/rest/v1/labor_notes", {
+    method:"POST",
+    headers:{ Prefer:"return=representation" },
+    body: JSON.stringify({
+      note_date: ymd(view),        /* 보고 있는 날짜에 기록한다 — 깜빡한 날도 채워 넣게 */
+      text: text,
+      author: me.id,               /* RLS 가 auth.uid() 와 대조한다 */
+      author_name: byEl.value.trim() || me.name
+    })
+  }).then(function(r){
+    return r.json().then(function(j){
+      if (!r.ok) throw new Error((j && (j.message || j.hint)) || "저장하지 못했습니다 ("+r.status+")");
+      return j;
+    });
+  }).then(function(j){
+    DATA.notes.unshift(toNote(j[0]));
+    txEl.value = "";
+    hint.textContent = "저장했습니다.";
+    hint.className = "nhint";
+    renderNotes();
+    txEl.focus();
+    return true;
+  }).catch(function(e){
+    hint.textContent = e.message;
+    hint.className = "nhint err";
+    return false;
+  });
 }
 
 document.getElementById("noteForm").addEventListener("submit", function(e){
@@ -1275,6 +1415,41 @@ function render(){
   document.getElementById("newPill").textContent = "새 항목 "+fresh+"건";
   renderHr();
   renderNotes();
+  renderSampleBar();
+  renderLastRun();
+}
+
+/* 예시가 몇 건인지 세어서 알린다. 문구를 고정해 두면 수집(태스크 5)이 붙어
+   예시가 사라진 뒤에도 "예시가 있다"고 계속 말하게 된다. */
+function renderSampleBar(){
+  var bar = document.getElementById("sampleBar");
+  var n = 0;
+  KINDS.forEach(function(k){
+    n += forView(DATA[k]).filter(function(it){ return it.sample; }).length;
+  });
+
+  bar.textContent = "";
+  bar.hidden = n === 0;
+  if (!n) return;
+
+  bar.appendChild(el("strong",null,"예시"));
+  bar.appendChild(document.createTextNode(" 배지가 붙은 "));
+  bar.appendChild(el("strong",null,n+"건"));
+  bar.appendChild(document.createTextNode(
+    "은 화면 확인용 자리표시자입니다 — 업무에 사용하지 마세요. " +
+    "나머지 항목은 식별번호와 출처 링크를 확인한 자료입니다."));
+}
+
+/* 수집이 멈춘 것을 사용자가 알 수 있어야 한다 (PRD 9항).
+   화면이 비어 있는 것과 오늘 갱신이 안 된 것은 다른 상황이다. */
+function renderLastRun(){
+  var lr = document.getElementById("lastRun");
+  if (!lastRun || !lastRun.finished_at){
+    lr.textContent = "마지막 수집 — 아직 없음 (자동 수집 준비 중)";
+    return;
+  }
+  lr.textContent = "마지막 수집 " + stamp(lastRun.finished_at) +
+    (lastRun.ok === false ? " · 실패" : " · " + (lastRun.inserted_count || 0) + "건");
 }
 
 function move(days){
@@ -1352,8 +1527,101 @@ function initTheme(){
   });
 }
 
-render();
+/* ---------- 계정 화면 상태 ---------- */
+function showGate(msg, isErr){
+  document.body.classList.add("locked");
+  document.body.classList.remove("booting");
+  document.getElementById("authGate").hidden = false;
+
+  var hint = document.getElementById("authHint");
+  hint.textContent = msg || "계정이 없으면 인사팀 관리자에게 요청하세요.";
+  hint.className = isErr ? "gatehint err" : "gatehint";
+
+  document.getElementById("whoPill").hidden = true;
+  var em = document.getElementById("authEmail");
+  if (em && !em.value) em.focus();
+}
+
+/* 역할에 따라 쓰기 화면을 연다. 이건 안내일 뿐이고 실제 차단은 RLS 가 한다 */
+function applyRole(){
+  var pill = document.getElementById("whoPill");
+  pill.textContent = "";
+  pill.appendChild(document.createTextNode(me.name + " "));
+  pill.appendChild(el("span","role",me.role));
+  pill.hidden = false;
+
+  var staff = me.role === "담당자";
+  document.getElementById("noteForm").hidden = !staff;
+  document.getElementById("noteReadonly").hidden = staff;
+  if (staff && !document.getElementById("noteBy").value){
+    document.getElementById("noteBy").value = me.name;
+  }
+}
+
+/* 로그인 이후 — 데이터를 받아 화면을 연다 */
+function enter(){
+  return loadAll().then(function(){
+    document.body.classList.remove("locked","booting");
+    document.getElementById("authGate").hidden = true;
+    applyRole();
+    render();
+    document.documentElement.setAttribute("data-loaded","1");
+  }).catch(function(){
+    /* 토큰이 죽었으면 빈 화면을 띄우지 않고 로그인으로 돌린다 */
+    storeSession(null);
+    session = null; me = null;
+    showGate("세션이 만료되었습니다. 다시 로그인해 주세요.", true);
+    document.documentElement.setAttribute("data-loaded","error");
+  });
+}
+
+document.getElementById("authForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  var btn  = document.getElementById("authBtn");
+  var hint = document.getElementById("authHint");
+  var email = document.getElementById("authEmail").value.trim();
+  var pw    = document.getElementById("authPw").value;
+
+  btn.disabled = true;
+  hint.textContent = "로그인하는 중…";
+  hint.className = "gatehint";
+
+  signIn(email, pw).then(function(){
+    document.getElementById("authPw").value = "";   /* 화면에 남겨 두지 않는다 */
+    return enter();
+  }).catch(function(err){
+    var m = String((err && err.message) || "");
+    hint.textContent = /invalid login|invalid grant/i.test(m)
+      ? "이메일 또는 비밀번호가 올바르지 않습니다."
+      : (m || "로그인하지 못했습니다.");
+    hint.className = "gatehint err";
+    document.documentElement.setAttribute("data-loaded","denied");
+  }).then(function(){ btn.disabled = false; });
+});
+
+document.getElementById("outBtn").addEventListener("click", function(){
+  signOut().then(function(){
+    document.getElementById("authPw").value = "";
+    /* 비운 데이터로 다시 그린다 — 감추기만 하면 앞사람의 브리핑이 DOM 에 남는다.
+       공용 PC 를 전제한 화면에서 이건 세션을 지우지 않은 것과 다를 바 없다. */
+    render();
+    document.getElementById("noteBy").value = "";
+    showGate("로그아웃했습니다.");
+    document.documentElement.removeAttribute("data-loaded");
+  });
+});
+
+/* ---------- 시작 ----------
+   테마는 로그인 전에도 적용한다 — 계정 데이터가 아니라 이 브라우저의 화면 설정이다 */
 initTheme();
+
+(function boot(){
+  var s = restoreSession();
+  if (!s){ showGate(); return; }
+  /* 역할은 서버에서 다시 확인한다. 세션에 담아 두면 위조할 수 있다 */
+  me = { id:s.user.id, email:s.user.email, name:s.user.email, role:"팀원" };
+  enter();
+}());
 
 }());
 </script>
